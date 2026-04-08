@@ -5,6 +5,7 @@ typedef struct {
     int score;
     int high_score;
     int level;
+    int food_eaten;
 } Score;
 
 Score *score_create(void);
