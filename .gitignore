@@ -1,4 +1,5 @@
 .claude/
+docs/superpowers/
 *.o
 snake
 data/highscore.dat
