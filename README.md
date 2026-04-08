@@ -7,6 +7,10 @@ A real-time terminal-based Snake game written entirely in C with custom-built li
 - Classic snake gameplay with smooth terminal rendering
 - Two game modes: Classic (wall collision = death) and Wrap-Around (snake wraps edges)
 - Progressive difficulty: speed increases every 5 food eaten
+- **Special food types**: Bonus food (`$`, 3x points, timed) and Slow food (`~`, temporary speed reduction, timed)
+- **Obstacles**: Static walls spawn as you level up (max 10), adding increasing challenge
+- **4 color themes**: Classic (green), Ice (blue), Lava (red/orange), Rainbow (multicolor)
+- **Lifetime stats**: Games played, total food, longest snake, best level — persisted across sessions
 - Pause/Resume with P key
 - Persistent high score system
 - Gradient-colored snake with game-over animation
@@ -38,6 +42,8 @@ make clean  # remove build artifacts
 | P | Pause / Resume |
 | Q | Quit |
 | R | Restart (on game over) |
+| 1-2 | Select game mode (title screen) |
+| 1-4 | Select color theme (title screen) |
 
 ## Custom Libraries
 
