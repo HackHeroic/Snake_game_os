@@ -9,12 +9,14 @@ Score *score_create(void) {
     s->score = 0;
     s->high_score = 0;
     s->level = 0;
+    s->food_eaten = 0;
     return s;
 }
 
 void score_increment(Score *s, int points) {
     s->score += points;
-    s->level = my_divide(s->score, 5);
+    s->food_eaten++;
+    s->level = my_divide(s->food_eaten, 5);
     if (s->score > s->high_score) {
         s->high_score = s->score;
     }
