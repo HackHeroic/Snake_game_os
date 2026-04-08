@@ -9,6 +9,7 @@ Food *food_spawn(Snake *s, int board_w, int board_h, int *seed) {
     int valid;
     SnakeSegment *seg;
     int area;
+    int roll;
 
     /* victory guard: if snake fills almost entire board, no room for food */
     area = my_multiply(board_w, board_h);
@@ -36,6 +37,20 @@ Food *food_spawn(Snake *s, int board_w, int board_h, int *seed) {
 
     f->x = x;
     f->y = y;
+
+    /* determine food type by probability: 65% normal, 20% bonus, 15% slow */
+    roll = my_mod(my_abs(pseudo_random(seed)), 100);
+    if (roll < 65) {
+        f->type = FOOD_NORMAL;
+        f->ticks_remaining = 0;
+    } else if (roll < 85) {
+        f->type = FOOD_BONUS;
+        f->ticks_remaining = 30;
+    } else {
+        f->type = FOOD_SLOW;
+        f->ticks_remaining = 30;
+    }
+
     return f;
 }
 
