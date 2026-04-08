@@ -3,8 +3,8 @@ CFLAGS = -Wall -Wextra -Werror -Isrc
 
 # Source files
 LIB_SRC = src/lib/math.c src/lib/string.c src/lib/memory.c src/lib/screen.c src/lib/keyboard.c
-GAME_SRC = src/game/snake.c src/game/food.c src/game/board.c src/game/score.c
-UI_SRC = src/ui/renderer.c src/ui/screens.c
+GAME_SRC = src/game/snake.c src/game/food.c src/game/board.c src/game/score.c src/game/obstacles.c src/game/stats.c
+UI_SRC = src/ui/renderer.c src/ui/screens.c src/ui/themes.c
 MAIN_SRC = src/main.c
 
 ALL_SRC = $(LIB_SRC) $(GAME_SRC) $(UI_SRC) $(MAIN_SRC)
