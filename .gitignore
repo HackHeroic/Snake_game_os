@@ -1,0 +1,4 @@
+.claude/
+*.o
+snake
+data/highscore.dat
