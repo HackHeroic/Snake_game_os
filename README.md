@@ -61,6 +61,10 @@ make clean  # remove build artifacts
 - Only `<stdio.h>` and `<stdlib.h>` from the C standard library
 - All values computed dynamically (no hardcoded game logic)
 
+## Documentation
+
+For detailed architecture, module design, and implementation decisions, see [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md).
+
 ## Known Issues
 
 - Terminal must support 256-color ANSI codes for gradient effects
