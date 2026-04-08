@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "themes.h"
 #include "../lib/screen.h"
 #include "../lib/string.h"
 #include "../lib/math.h"
@@ -8,14 +9,10 @@
 #define OFFSET_X 2
 #define OFFSET_Y 2
 
-/* green gradient colors for snake body (256-color codes) */
-static const int snake_colors[] = { 46, 40, 34, 28, 22 };
-#define NUM_SNAKE_COLORS 5
-
-void render_border(Board *b) {
+void render_border(Board *b, const Theme *t) {
     int i;
 
-    screen_set_color(45);  /* cyan */
+    screen_set_color(t->border_color);
 
     /* top border */
     screen_put_char(OFFSET_X - 1, OFFSET_Y - 1, '+');
@@ -40,18 +37,22 @@ void render_border(Board *b) {
     screen_reset_color();
 }
 
-void render_snake(Snake *s) {
+void render_snake(Snake *s, const Theme *t) {
     SnakeSegment *seg = s->head;
     int dist = 0;
-    int color_idx;
+    int color;
 
     while (seg != NULL) {
-        color_idx = my_min(dist, NUM_SNAKE_COLORS - 1);
-        screen_set_color(snake_colors[color_idx]);
-
         if (dist == 0) {
+            screen_set_color(t->head_color);
             screen_put_char(OFFSET_X + seg->x, OFFSET_Y + seg->y, '@');
         } else {
+            if (t->rainbow) {
+                color = theme_get_rainbow_color(dist);
+            } else {
+                color = t->body_colors[my_min(dist - 1, 4)];
+            }
+            screen_set_color(color);
             screen_put_char(OFFSET_X + seg->x, OFFSET_Y + seg->y, 'O');
         }
 
@@ -62,10 +63,25 @@ void render_snake(Snake *s) {
     screen_reset_color();
 }
 
-void render_food(Food *f, Board *b) {
+void render_food(Food *f, Board *b, const Theme *t) {
+    int color;
+    char ch;
+
     (void)b;
-    screen_set_color(196);  /* bright red */
-    screen_put_char(OFFSET_X + f->x, OFFSET_Y + f->y, '*');
+
+    if (f->type == FOOD_BONUS) {
+        color = t->bonus_food_color;
+        ch = '$';
+    } else if (f->type == FOOD_SLOW) {
+        color = t->slow_food_color;
+        ch = '~';
+    } else {
+        color = t->food_color;
+        ch = '*';
+    }
+
+    screen_set_color(color);
+    screen_put_char(OFFSET_X + f->x, OFFSET_Y + f->y, ch);
     screen_reset_color();
 }
 
