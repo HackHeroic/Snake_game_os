@@ -118,3 +118,15 @@ void render_erase_tail(int x, int y, Board *b) {
     (void)b;
     screen_put_char(OFFSET_X + x, OFFSET_Y + y, ' ');
 }
+
+void render_obstacles(Obstacles *obs, Board *b, const Theme *t) {
+    int i;
+    (void)b;
+
+    screen_set_color(t->obstacle_color);
+    for (i = 0; i < obs->count; i++) {
+        screen_put_char(OFFSET_X + obs->items[i].x,
+                       OFFSET_Y + obs->items[i].y, '#');
+    }
+    screen_reset_color();
+}
