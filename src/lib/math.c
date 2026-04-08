@@ -50,31 +50,37 @@ int my_divide(int a, int b) {
 }
 
 int my_mod(int a, int b) {
-    (void)a; (void)b;
-    return 0;
+    if (b == 0) return 0;
+    return a - my_multiply(my_divide(a, b), b);
 }
 
 int my_abs(int a) {
-    (void)a;
-    return 0;
+    return a < 0 ? -a : a;
 }
 
 int my_min(int a, int b) {
-    (void)a; (void)b;
-    return 0;
+    return a < b ? a : b;
 }
 
 int my_max(int a, int b) {
-    (void)a; (void)b;
-    return 0;
+    return a > b ? a : b;
 }
 
 int my_clamp(int val, int min, int max) {
-    (void)val; (void)min; (void)max;
-    return 0;
+    if (val < min) return min;
+    if (val > max) return max;
+    return val;
 }
 
 int pseudo_random(int *seed) {
-    (void)seed;
-    return 0;
+    unsigned int s = (unsigned int)(*seed);
+    /* MINSTD: a=16807, m=2^31-1 */
+    /* Use Schrage's method to avoid overflow: */
+    /* m/a = 127773, m%a = 2836 */
+    int hi = (int)(s / 127773u);
+    int lo = (int)(s % 127773u);
+    int t = my_multiply(16807, lo) - my_multiply(2836, hi);
+    if (t <= 0) t += 2147483647;
+    *seed = t;
+    return t;
 }

@@ -39,5 +39,38 @@ int main(void) {
     ASSERT("divide 2147483647/16807=127773 (PRNG-sized)", my_divide(2147483647, 16807) == 127773);
     ASSERT("divide by zero returns 0", my_divide(5, 0) == 0);
 
+    /* mod tests */
+    ASSERT("mod 7%3=1", my_mod(7, 3) == 1);
+    ASSERT("mod 10%5=0", my_mod(10, 5) == 0);
+    ASSERT("mod 13%4=1", my_mod(13, 4) == 1);
+
+    /* abs tests */
+    ASSERT("abs(5)=5", my_abs(5) == 5);
+    ASSERT("abs(-5)=5", my_abs(-5) == 5);
+    ASSERT("abs(0)=0", my_abs(0) == 0);
+
+    /* min/max tests */
+    ASSERT("min(3,7)=3", my_min(3, 7) == 3);
+    ASSERT("min(7,3)=3", my_min(7, 3) == 3);
+    ASSERT("max(3,7)=7", my_max(3, 7) == 7);
+    ASSERT("max(7,3)=7", my_max(7, 3) == 7);
+
+    /* clamp tests */
+    ASSERT("clamp(5,0,10)=5", my_clamp(5, 0, 10) == 5);
+    ASSERT("clamp(-1,0,10)=0", my_clamp(-1, 0, 10) == 0);
+    ASSERT("clamp(15,0,10)=10", my_clamp(15, 0, 10) == 10);
+
+    /* PRNG tests */
+    {
+        int seed = 12345;
+        int r1 = pseudo_random(&seed);
+        int r2 = pseudo_random(&seed);
+        ASSERT("prng returns positive", r1 > 0);
+        ASSERT("prng second call differs", r1 != r2);
+        seed = 12345;
+        int r3 = pseudo_random(&seed);
+        ASSERT("prng same seed same result", r1 == r3);
+    }
+
     TEST_SUMMARY();
 }
