@@ -20,7 +20,24 @@ int main(void) {
     printf("Math Library Tests\n");
     printf("==================\n");
 
-    ASSERT("my_multiply stub returns 0", my_multiply(2, 3) == 0);
+    /* multiply tests */
+    ASSERT("multiply 2*3=6", my_multiply(2, 3) == 6);
+    ASSERT("multiply 0*5=0", my_multiply(0, 5) == 0);
+    ASSERT("multiply 7*1=7", my_multiply(7, 1) == 7);
+    ASSERT("multiply -3*4=-12", my_multiply(-3, 4) == -12);
+    ASSERT("multiply -2*-5=10", my_multiply(-2, -5) == 10);
+    ASSERT("multiply 100*200=20000", my_multiply(100, 200) == 20000);
+    ASSERT("multiply 16807*12345 (PRNG-sized)", my_multiply(16807, 12345) == 207482415);
+
+    /* divide tests */
+    ASSERT("divide 6/3=2", my_divide(6, 3) == 2);
+    ASSERT("divide 7/2=3", my_divide(7, 2) == 3);
+    ASSERT("divide 0/5=0", my_divide(0, 5) == 0);
+    ASSERT("divide 100/10=10", my_divide(100, 10) == 10);
+    ASSERT("divide -10/3=-3", my_divide(-10, 3) == -3);
+    ASSERT("divide 10/-3=-3", my_divide(10, -3) == -3);
+    ASSERT("divide 2147483647/16807=127773 (PRNG-sized)", my_divide(2147483647, 16807) == 127773);
+    ASSERT("divide by zero returns 0", my_divide(5, 0) == 0);
 
     TEST_SUMMARY();
 }
