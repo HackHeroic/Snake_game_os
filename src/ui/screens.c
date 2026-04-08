@@ -3,6 +3,7 @@
 #include "../lib/keyboard.h"
 #include "../lib/string.h"
 #include "../lib/math.h"
+#include "../game/stats.h"
 #include <unistd.h>
 #include <stddef.h>
 
@@ -56,6 +57,32 @@ int show_title_screen(int *seed) {
         if (key == '1') { *seed = entropy; return 0; }
         if (key == '2') { *seed = entropy; return 1; }
         usleep(10000);  /* 10ms poll interval */
+    }
+}
+
+int show_theme_screen(void) {
+    int key;
+
+    screen_put_str(5, 16, "Select Theme:");
+    screen_set_color(46);
+    screen_put_str(5, 18, "[1] Classic    (green)");
+    screen_set_color(45);
+    screen_put_str(5, 19, "[2] Ice        (blue)");
+    screen_set_color(202);
+    screen_put_str(5, 20, "[3] Lava       (red/orange)");
+    screen_set_color(196);
+    screen_put_str(5, 21, "[4] Rainbow    (multicolor)");
+    screen_reset_color();
+
+    screen_flush();
+
+    while (1) {
+        key = read_key();
+        if (key == '1') return 0;
+        if (key == '2') return 1;
+        if (key == '3') return 2;
+        if (key == '4') return 3;
+        usleep(10000);
     }
 }
 
@@ -118,12 +145,13 @@ void show_game_over(Snake *s, Board *b, Score *sc) {
     }
 }
 
-int show_game_over_prompt(Board *b, Score *s) {
+int show_game_over_prompt(Board *b, Score *s, Stats *st) {
     int cx = OFFSET_X + my_divide(b->width, 2) - 4;
     int cy = OFFSET_Y + my_divide(b->height, 2);
     char score_str[16];
     char high_str[16];
     char line[64];
+    char num_str[16];
     int key;
 
     screen_set_color(196);
@@ -140,6 +168,28 @@ int show_game_over_prompt(Board *b, Score *s) {
     screen_put_str(cx - 2, cy + 1, line);
 
     screen_put_str(cx - 4, cy + 3, "R: Restart  |  Q: Quit");
+
+    /* lifetime stats */
+    screen_set_color(240);
+    screen_put_str(cx - 5, cy + 5, "--- Lifetime Stats ---");
+
+    my_strcpy(line, "Games: ");
+    int_to_str(st->games_played, num_str);
+    my_strcat(line, num_str);
+    my_strcat(line, "    Food: ");
+    int_to_str(st->total_food, num_str);
+    my_strcat(line, num_str);
+    screen_put_str(cx - 5, cy + 6, line);
+
+    my_strcpy(line, "Longest: ");
+    int_to_str(st->longest_snake, num_str);
+    my_strcat(line, num_str);
+    my_strcat(line, "  Best Lvl: ");
+    int_to_str(st->best_level, num_str);
+    my_strcat(line, num_str);
+    screen_put_str(cx - 5, cy + 7, line);
+    screen_reset_color();
+
     screen_flush();
 
     while (1) {
