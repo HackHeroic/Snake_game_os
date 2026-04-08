@@ -49,7 +49,8 @@ Add fields to the food struct:
 
 When slow food is eaten:
 - Store a `slow_ticks_remaining` counter (initialized to 30) in the game state (a local variable in `main.c`'s game loop)
-- Each tick, if `slow_ticks_remaining > 0`, add 50ms to the current frame delay and decrement the counter
+- Each tick, if `slow_ticks_remaining > 0`, add 50ms to the **level-adjusted** frame delay (from `score_get_speed()`) and decrement the counter
+- The 80ms minimum speed floor does **not** apply during the slow effect (so at level 8 with 80ms base, the delay becomes 130ms)
 - The slow effect does not stack — eating another slow food resets the counter to 30
 
 ### Despawn Logic
@@ -58,11 +59,16 @@ In the main game loop, each tick:
 1. If `food->ticks_remaining > 0`, decrement it
 2. If it reaches 0, despawn the food (dealloc + spawn new food)
 
+### Food Spawn Signature
+
+`food_spawn()` keeps the same external signature but internally rolls the probability using the PRNG
+to set `type` and `ticks_remaining` on the returned `Food*`. The caller does not pass the food type.
+
 ### Affected Files
 
-- `src/game/food.c/h` — add enum, fields, spawn probability logic
-- `src/main.c` — tick countdown, slow effect timer, despawn logic
-- `src/game/score.c` — accept variable point value in score update
+- `src/game/food.c/h` — add enum, fields, spawn probability logic (internal to `food_spawn`)
+- `src/main.c` — tick countdown, slow effect timer, despawn logic, `food_eaten` counter
+- `src/game/score.c` — accept variable point value in score update; level based on `food_eaten` not score
 - `src/ui/renderer.c` — render character/color based on food type
 
 ---
@@ -73,18 +79,26 @@ In the main game loop, each tick:
 
 Static wall segments that appear as the player progresses through levels, increasing difficulty.
 
+### Leveling Note
+
+Leveling is based on **food eaten count**, not score. Add a `food_eaten` counter to game state
+(in `main.c` or `Score`). Level = `my_divide(food_eaten, 5)`. This prevents bonus food (3 pts)
+from accelerating leveling and keeps difficulty progression tied to food consumption.
+
 ### Spawn Rules
 
 - No obstacles at level 0
 - On each level-up (every 5 food eaten), spawn 1-2 new obstacles at random positions
 - Maximum 10 obstacles on the board at any time
 - Obstacles persist for the rest of the game (they don't despawn)
+- Obstacles can spawn on any valid board cell including edges (relevant for Wrap mode where edges are traversable)
 
 ### Placement Safety
 
 An obstacle must NOT spawn:
 - On any snake segment
 - On the current food position
+- On any existing obstacle position
 - Within 2 cells (Manhattan distance) of the snake's head
 
 If a random position violates these rules, retry with a new random position (same pattern as food spawning).
@@ -115,8 +129,9 @@ No dynamic allocation — the max is small and known.
 ### Rendering
 
 - Character: `#`
-- Color: White/gray (250)
+- Color: Theme-dependent (default: white/gray 250)
 - Drawn once when spawned (like the border), not redrawn every frame
+- **Redraw on unpause:** After `screen_clear()` on unpause, obstacles must be redrawn along with border, snake, food, and HUD. Add an `obstacles_render()` call to the unpause redraw sequence in `main.c`.
 
 ### Affected Files
 
@@ -134,12 +149,12 @@ No dynamic allocation — the max is small and known.
 
 ### Themes
 
-| Theme | Head | Body Gradient | Food | Border | Obstacle |
-|-------|------|---------------|------|--------|----------|
-| Classic | 46 (bright green) | 46 -> 40 -> 34 -> 28 -> 22 | 196 (red) | 6 (cyan) | 250 (gray) |
-| Ice | 45 (light blue) | 45 -> 39 -> 33 -> 27 -> 21 | 226 (yellow) | 75 (light cyan) | 255 (white) |
-| Lava | 202 (orange) | 202 -> 196 -> 160 -> 124 -> 88 | 46 (green) | 208 (dark orange) | 250 (gray) |
-| Rainbow | Cycles | segment_index % 6 into [196, 208, 226, 46, 21, 93] | 255 (white) | 6 (cyan) | 250 (gray) |
+| Theme | Head | Body Gradient | Normal Food | Bonus Food | Slow Food | Border | Obstacle |
+|-------|------|---------------|-------------|------------|-----------|--------|----------|
+| Classic | 46 (bright green) | 46 -> 40 -> 34 -> 28 -> 22 | 196 (red) | 226 (yellow) | 39 (blue) | 45 (cyan) | 250 (gray) |
+| Ice | 45 (light blue) | 45 -> 39 -> 33 -> 27 -> 21 | 226 (yellow) | 214 (orange) | 195 (light blue) | 75 (light cyan) | 255 (white) |
+| Lava | 202 (orange) | 202 -> 196 -> 160 -> 124 -> 88 | 46 (green) | 226 (yellow) | 33 (blue) | 208 (dark orange) | 250 (gray) |
+| Rainbow | 196 (red) | segment_index % 6 into [196, 208, 226, 46, 21, 93] | 255 (white) | 226 (yellow) | 39 (blue) | 45 (cyan) | 250 (gray) |
 
 ### Data Structure
 
@@ -160,13 +175,15 @@ The 4 themes are static const structs defined in `themes.c`. No allocation.
 
 ### Rainbow Logic
 
-For rainbow theme, the body color for a segment is:
+For rainbow theme, the **head** always uses `rainbow_colors[0]` (196 = red). The body color for a segment is:
 ```c
 int rainbow_colors[] = {196, 208, 226, 46, 21, 93};
-color = rainbow_colors[segment_index % 6];
+// head: rainbow_colors[0] (always red)
+// body: rainbow_colors[(segment_index + 1) % 6]
+color = rainbow_colors[(segment_index + 1) % 6];
 ```
 
-This replaces the gradient lookup only when `theme->rainbow == 1`.
+This replaces the gradient lookup only when `theme->rainbow == 1`. The `head_color` field in the Rainbow theme struct is set to 196 (red) for non-rainbow code paths that read it directly.
 
 ### Selection
 
@@ -176,6 +193,7 @@ Theme: 1=Classic  2=Ice  3=Lava  4=Rainbow
 ```
 
 The selected theme is passed to the renderer at game start.
+Invalid keys (anything other than 1-4) are ignored and the prompt loops, same behavior as the existing mode selection.
 
 ### Affected Files
 
@@ -213,7 +231,7 @@ typedef struct {
 
 ### Persistence
 
-- File: `data/stats.dat`
+- File: `data/stats.dat` (the `data/` directory already exists for `highscore.dat`)
 - Format: plain text, one value per line (same pattern as `highscore.dat`)
 - `stats_load()`: read via `fscanf`, default all to 0 if file missing
 - `stats_save()`: write via `fprintf`
@@ -227,7 +245,10 @@ Games: 42    Food: 318
 Longest: 27  Best Lvl: 5
 ```
 
-Rendered using `screen_put_str()` — 2-3 extra lines on the game-over screen.
+Rendered using `screen_put_str()` — 3 extra lines on the game-over screen.
+Position: start at `cy + 5` (below existing content at cy-1, cy+1, cy+3).
+On very small terminals (minimum 22x14, board_h=8), this fits within the board area since
+the game-over screen centers vertically and has room for ~4 lines below center.
 
 ### Flow
 
