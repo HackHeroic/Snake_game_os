@@ -75,7 +75,9 @@ void snake_move(Snake *s, int nx, int ny, int grew) {
 int snake_check_self_collision(Snake *s, int nx, int ny) {
     SnakeSegment *seg = s->head;
     while (seg != NULL) {
-        if (seg->x == nx && seg->y == ny) {
+        /* Skip tail: in the non-growing case, the tail will be removed
+           during this tick, so its cell is effectively free */
+        if (seg != s->tail && seg->x == nx && seg->y == ny) {
             return 1;
         }
         seg = seg->next;
