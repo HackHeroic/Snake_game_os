@@ -81,8 +81,8 @@ int main(void) {
         snake = snake_create(my_divide(board_w, 2), my_divide(board_h, 2));
         score = score_create();
         score_load_high(score);
-        food = food_spawn(snake, &obstacles, board_w, board_h, &seed);
         obstacles_init(&obstacles);
+        food = food_spawn(snake, &obstacles, board_w, board_h, &seed);
 
         /* initial draw */
         screen_clear();
