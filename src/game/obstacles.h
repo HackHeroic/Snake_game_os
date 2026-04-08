@@ -11,7 +11,7 @@ typedef struct {
     int y;
 } Obstacle;
 
-typedef struct {
+typedef struct Obstacles {
     Obstacle items[MAX_OBSTACLES];
     int count;
 } Obstacles;

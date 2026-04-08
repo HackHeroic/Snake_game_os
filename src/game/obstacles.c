@@ -44,6 +44,7 @@ void obstacles_spawn(Obstacles *obs, Snake *s, Food *f,
                      int board_w, int board_h, int *seed) {
     int to_spawn;
     int x, y;
+    int retries;
 
     if (obs->count >= MAX_OBSTACLES)
         return;
@@ -52,15 +53,20 @@ void obstacles_spawn(Obstacles *obs, Snake *s, Food *f,
     to_spawn = 1 + my_mod(my_abs(pseudo_random(seed)), 2);
 
     while (to_spawn > 0 && obs->count < MAX_OBSTACLES) {
-        x = my_mod(my_abs(pseudo_random(seed)), board_w);
-        y = my_mod(my_abs(pseudo_random(seed)), board_h);
+        retries = 100;
+        while (retries > 0) {
+            x = my_mod(my_abs(pseudo_random(seed)), board_w);
+            y = my_mod(my_abs(pseudo_random(seed)), board_h);
 
-        if (is_safe(obs, s, f, x, y)) {
-            obs->items[obs->count].x = x;
-            obs->items[obs->count].y = y;
-            obs->count++;
-            to_spawn--;
+            if (is_safe(obs, s, f, x, y)) {
+                obs->items[obs->count].x = x;
+                obs->items[obs->count].y = y;
+                obs->count++;
+                break;
+            }
+            retries--;
         }
+        to_spawn--;
     }
 }
 

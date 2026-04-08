@@ -81,7 +81,7 @@ int main(void) {
         snake = snake_create(my_divide(board_w, 2), my_divide(board_h, 2));
         score = score_create();
         score_load_high(score);
-        food = food_spawn(snake, board_w, board_h, &seed);
+        food = food_spawn(snake, &obstacles, board_w, board_h, &seed);
         obstacles_init(&obstacles);
 
         /* initial draw */
@@ -198,7 +198,7 @@ int main(void) {
                 }
 
                 food_free(food);
-                food = food_spawn(snake, board_w, board_h, &seed);
+                food = food_spawn(snake, &obstacles, board_w, board_h, &seed);
                 if (food == NULL) {
                     /* victory! board is full */
                     show_victory(score, board);
@@ -220,7 +220,7 @@ int main(void) {
                     /* erase old food and spawn new */
                     screen_put_char(OFFSET_X + food->x, OFFSET_Y + food->y, ' ');
                     food_free(food);
-                    food = food_spawn(snake, board_w, board_h, &seed);
+                    food = food_spawn(snake, &obstacles, board_w, board_h, &seed);
                     if (food) render_food(food, board, theme);
                 }
             }
@@ -253,6 +253,11 @@ int main(void) {
             if (key == 'q') {
                 running = 0;
             }
+        }
+
+        /* save stats on quit (not just game over) */
+        if (!running) {
+            stats_save(&stats);
         }
 
         /* cleanup for restart or exit */
