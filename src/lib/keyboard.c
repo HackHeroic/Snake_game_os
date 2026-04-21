@@ -5,6 +5,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
 
 static struct termios original_termios;
 static int raw_mode_enabled = 0;
@@ -43,20 +44,32 @@ void keyboard_restore(void) {
 
 int key_pressed(void) {
     unsigned char c;
-    int n = read(STDIN_FILENO, &c, 1);
+    int n;
+    do {
+        n = read(STDIN_FILENO, &c, 1);
+    } while (n == -1 && errno == EINTR);
     if (n <= 0) return KEY_NONE;
     return (int)c;
 }
 
 int read_key(void) {
     unsigned char c;
-    int n = read(STDIN_FILENO, &c, 1);
+    int n;
+    do {
+        n = read(STDIN_FILENO, &c, 1);
+    } while (n == -1 && errno == EINTR);
     if (n <= 0) return KEY_NONE;
 
     if (c == '\033') {
         unsigned char seq[2];
-        if (read(STDIN_FILENO, &seq[0], 1) != 1) return '\033';
-        if (read(STDIN_FILENO, &seq[1], 1) != 1) return '\033';
+        do {
+            n = read(STDIN_FILENO, &seq[0], 1);
+        } while (n == -1 && errno == EINTR);
+        if (n != 1) return '\033';
+        do {
+            n = read(STDIN_FILENO, &seq[1], 1);
+        } while (n == -1 && errno == EINTR);
+        if (n != 1) return '\033';
 
         if (seq[0] == '[') {
             switch (seq[1]) {

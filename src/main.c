@@ -18,6 +18,114 @@
 #define OFFSET_X 2
 #define OFFSET_Y 2
 
+static int food_placement_invalid(Food *f, Snake *snake, Obstacles *obs,
+                                  int bw, int bh) {
+    SnakeSegment *seg;
+    int i;
+
+    if (!f) return 0;
+    if (f->x < 0 || f->x >= bw || f->y < 0 || f->y >= bh) return 1;
+
+    for (seg = snake->head; seg != NULL; seg = seg->next) {
+        if (seg->x == f->x && seg->y == f->y) return 1;
+    }
+    for (i = 0; i < obs->count; i++) {
+        if (obs->items[i].x == f->x && obs->items[i].y == f->y) return 1;
+    }
+    return 0;
+}
+
+static int snake_on_any_obstacle(Snake *s, Obstacles *obs) {
+    SnakeSegment *seg;
+
+    for (seg = s->head; seg != NULL; seg = seg->next) {
+        if (obstacles_check_collision(obs, seg->x, seg->y)) return 1;
+    }
+    return 0;
+}
+
+static void redraw_full_game(Board *board, Snake *snake, Food *food,
+                             Obstacles *obs, Score *score, const Theme *theme) {
+    screen_clear();
+    render_border(board, theme);
+    render_snake(snake, theme);
+    if (food) render_food(food, board, theme);
+    render_obstacles(obs, board, theme);
+    render_hud(score, board);
+    screen_flush();
+}
+
+/* Wait until terminal meets minimum size or user quits. Returns 0 ok, -1 quit. */
+static int wait_for_valid_terminal(void) {
+    int key;
+
+    for (;;) {
+        if (get_terminal_width() >= 22 && get_terminal_height() >= 14) return 0;
+
+        screen_clear();
+        screen_put_str(2, 2, "Terminal too small (need 22x14). Resize or press Q.");
+        screen_flush();
+
+        key = read_key();
+        if (key == 'q' || key == 'Q') return -1;
+        usleep(50000);
+    }
+}
+
+/*
+ * Recompute board from terminal, refit snake, clamp obstacles, fix food.
+ * Returns: 0 ok, -1 user quit (Q while too small), 1 snake died (squashed/overlap).
+ */
+static int apply_terminal_resize(int *board_w, int *board_h, Board *board,
+                                 Snake *snake, Food **food, Obstacles *obs,
+                                 Score *score, const Theme *theme, int *seed,
+                                 int paused) {
+    int tw, th;
+    Food *nf;
+
+    tw = get_terminal_width();
+    th = get_terminal_height();
+
+    if (tw < 22 || th < 14) {
+        if (wait_for_valid_terminal() != 0) return -1;
+        tw = get_terminal_width();
+        th = get_terminal_height();
+    }
+
+    *board_w = tw - 4;
+    *board_h = th - 6;
+    board_set_size(board, *board_w, *board_h);
+
+    if (!snake_refit_to_board(snake, *board_w, *board_h)) {
+        snake->alive = 0;
+        return 1;
+    }
+
+    obstacles_clamp_to_board(obs, *board_w, *board_h);
+
+    if (snake_on_any_obstacle(snake, obs)) {
+        snake->alive = 0;
+        return 1;
+    }
+
+    if (food_placement_invalid(*food, snake, obs, *board_w, *board_h)) {
+        if (*food) {
+            food_free(*food);
+            *food = NULL;
+        }
+        nf = food_spawn(snake, obs, *board_w, *board_h, seed);
+        if (nf == NULL) {
+            snake->alive = 0;
+            return 1;
+        }
+        *food = nf;
+    }
+
+    redraw_full_game(board, snake, *food, obs, score, theme);
+    if (paused) show_pause_overlay(board);
+    return 0;
+}
+
 int main(void) {
     int seed = 0;
     int mode;
@@ -46,6 +154,7 @@ int main(void) {
     /* init systems */
     memory_init();
     keyboard_init();
+    terminal_install_winch_handler();
     screen_hide_cursor();
 
     /* load lifetime stats once */
@@ -99,6 +208,19 @@ int main(void) {
 
         /* game loop */
         while (snake->alive) {
+            if (terminal_consume_winch()) {
+                int ar = apply_terminal_resize(&board_w, &board_h, board, snake, &food,
+                                              &obstacles, score, theme, &seed, paused);
+                if (ar == -1) {
+                    running = 0;
+                    snake->alive = 0;
+                    break;
+                }
+                if (!snake->alive) break;
+                if (ar == 0) last_score = score->score;
+                continue;
+            }
+
             key = read_key();
 
             /* handle controls */
@@ -112,14 +234,7 @@ int main(void) {
                 if (paused) {
                     show_pause_overlay(board);
                 } else {
-                    /* redraw to clear pause text */
-                    screen_clear();
-                    render_border(board, theme);
-                    render_snake(snake, theme);
-                    if (food) render_food(food, board, theme);
-                    render_obstacles(&obstacles, board, theme);
-                    render_hud(score, board);
-                    screen_flush();
+                    redraw_full_game(board, snake, food, &obstacles, score, theme);
                 }
                 continue;
             }

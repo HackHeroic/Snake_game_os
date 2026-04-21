@@ -23,4 +23,7 @@ int snake_check_self_collision(Snake *s, int nx, int ny);
 void snake_set_direction(Snake *s, Direction dir);
 void snake_free(Snake *s);
 
+/* Move snake rigidly so it fits 0..new_w-1, 0..new_h-1. Returns 0 if impossible. */
+int snake_refit_to_board(Snake *s, int new_w, int new_h);
+
 #endif

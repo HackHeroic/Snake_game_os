@@ -91,6 +91,42 @@ void snake_set_direction(Snake *s, Direction dir) {
     s->direction = dir;
 }
 
+int snake_refit_to_board(Snake *s, int new_w, int new_h) {
+    SnakeSegment *seg;
+    int min_x, max_x, min_y, max_y;
+    int bw, bh;
+    int ox, oy;
+
+    if (!s || !s->head) return 0;
+
+    min_x = max_x = s->head->x;
+    min_y = max_y = s->head->y;
+    for (seg = s->head; seg != NULL; seg = seg->next) {
+        if (seg->x < min_x) min_x = seg->x;
+        if (seg->x > max_x) max_x = seg->x;
+        if (seg->y < min_y) min_y = seg->y;
+        if (seg->y > max_y) max_y = seg->y;
+    }
+
+    bw = max_x - min_x + 1;
+    bh = max_y - min_y + 1;
+    if (bw > new_w || bh > new_h) return 0;
+
+    ox = -min_x + my_divide(new_w - bw, 2);
+    oy = -min_y + my_divide(new_h - bh, 2);
+
+    for (seg = s->head; seg != NULL; seg = seg->next) {
+        seg->x += ox;
+        seg->y += oy;
+    }
+
+    for (seg = s->head; seg != NULL; seg = seg->next) {
+        if (seg->x < 0 || seg->x >= new_w || seg->y < 0 || seg->y >= new_h)
+            return 0;
+    }
+    return 1;
+}
+
 void snake_free(Snake *s) {
     SnakeSegment *seg;
     SnakeSegment *next;

@@ -13,4 +13,9 @@ void board_free(Board *b);
 int get_terminal_width(void);
 int get_terminal_height(void);
 
+void terminal_install_winch_handler(void);
+int terminal_consume_winch(void);
+
+void board_set_size(Board *b, int width, int height);
+
 #endif

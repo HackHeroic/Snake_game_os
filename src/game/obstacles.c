@@ -78,3 +78,18 @@ int obstacles_check_collision(Obstacles *obs, int x, int y) {
     }
     return 0;
 }
+
+void obstacles_clamp_to_board(Obstacles *obs, int board_w, int board_h) {
+    int i;
+
+    i = 0;
+    while (i < obs->count) {
+        if (obs->items[i].x < 0 || obs->items[i].x >= board_w ||
+            obs->items[i].y < 0 || obs->items[i].y >= board_h) {
+            obs->items[i] = obs->items[obs->count - 1];
+            obs->count--;
+        } else {
+            i++;
+        }
+    }
+}
