@@ -7,6 +7,7 @@ A real-time terminal-based Snake game written entirely in C with custom-built li
 - Classic snake gameplay with smooth terminal rendering
 - Two game modes: Classic (wall collision = death) and Wrap-Around (snake wraps edges)
 - Progressive difficulty: speed increases every 5 food eaten; **multiple food** — at least **3** pieces on the board from the start (refilled after each bite when space allows; more at higher levels, up to 8)
+- **Ghost snake (AI)**: a second snake (`g` / `o`) moves at random; **touch any part of it and you lose**
 - **Special food types**: Bonus food (`$`, 3x points, timed) and Slow food (`~`, temporary speed reduction, timed)
 - **4 color themes**: Classic (green), Ice (blue), Lava (red/orange), Rainbow (multicolor)
 - **Lifetime stats**: Games played, total food, longest snake, best level — persisted across sessions

@@ -23,7 +23,7 @@ This document tracks post–presentation fixes and planned Phase 2 work.
 
 | Feature | Summary |
 |--------|---------|
-| **AI ghost snake** | A second snake controlled by the computer, moving randomly on the board. **Collision with it kills the player** (same severity as other fatal collisions). |
+| **AI ghost snake** | **Done:** Random-move second snake (`g`/`o`); **any overlap with the player ends the game.** |
 | **Speed powerup zones** | Glowing regions on the board that **temporarily speed up or slow down** the player snake when passed through. |
 | **Shrinking board** | **Walls advance inward** by one row/column on a timer or per level, reducing playable area and increasing difficulty. |
 | **Multiple food** | **Done:** target `max(3, 1 + level)` (max 8) — **3+ foods from game start**; each eat triggers refill to target. |

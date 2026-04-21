@@ -127,6 +127,29 @@ int snake_refit_to_board(Snake *s, int new_w, int new_h) {
     return 1;
 }
 
+int snake_occupies_cell(const Snake *s, int x, int y) {
+    SnakeSegment *seg;
+
+    if (!s) return 0;
+    for (seg = s->head; seg != NULL; seg = seg->next) {
+        if (seg->x == x && seg->y == y) return 1;
+    }
+    return 0;
+}
+
+int snake_snakes_overlap(const Snake *a, const Snake *b) {
+    SnakeSegment *sa;
+    SnakeSegment *sb;
+
+    if (!a || !b) return 0;
+    for (sa = a->head; sa != NULL; sa = sa->next) {
+        for (sb = b->head; sb != NULL; sb = sb->next) {
+            if (sa->x == sb->x && sa->y == sb->y) return 1;
+        }
+    }
+    return 0;
+}
+
 void snake_free(Snake *s) {
     SnakeSegment *seg;
     SnakeSegment *next;

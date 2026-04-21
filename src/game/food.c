@@ -64,7 +64,7 @@ static void assign_food_type(Food *f, int *seed) {
     }
 }
 
-int foods_try_add_one(Foods *fs, Snake *s, Obstacles *obs,
+int foods_try_add_one(Foods *fs, Snake *s, Snake *ghost, Obstacles *obs,
                       int board_w, int board_h, int *seed) {
     Food *slot;
     int x, y;
@@ -86,6 +86,8 @@ int foods_try_add_one(Foods *fs, Snake *s, Obstacles *obs,
         valid = 1;
 
         if (foods_occupy(fs, x, y)) valid = 0;
+
+        if (valid && ghost && snake_occupies_cell(ghost, x, y)) valid = 0;
 
         if (valid) {
             seg = s->head;
@@ -120,7 +122,7 @@ int foods_try_add_one(Foods *fs, Snake *s, Obstacles *obs,
     return -1;
 }
 
-void foods_fill_to_target(Foods *fs, Snake *s, Obstacles *obs,
+void foods_fill_to_target(Foods *fs, Snake *s, Snake *ghost, Obstacles *obs,
                           int board_w, int board_h, int *seed, int target) {
     int guard;
 
@@ -129,7 +131,7 @@ void foods_fill_to_target(Foods *fs, Snake *s, Obstacles *obs,
 
     guard = 0;
     while (fs->count < target && guard < 500) {
-        if (foods_try_add_one(fs, s, obs, board_w, board_h, seed) != 0) break;
+        if (foods_try_add_one(fs, s, ghost, obs, board_w, board_h, seed) != 0) break;
         guard++;
     }
 }

@@ -63,6 +63,25 @@ void render_snake(Snake *s, const Theme *t) {
     screen_reset_color();
 }
 
+void render_ghost_snake(const Snake *s, const Theme *t) {
+    SnakeSegment *seg = s->head;
+    int dist = 0;
+
+    while (seg != NULL) {
+        if (dist == 0) {
+            screen_set_color(t->ghost_head_color);
+            screen_put_char(OFFSET_X + seg->x, OFFSET_Y + seg->y, 'g');
+        } else {
+            screen_set_color(t->ghost_body_color);
+            screen_put_char(OFFSET_X + seg->x, OFFSET_Y + seg->y, 'o');
+        }
+        dist++;
+        seg = seg->next;
+    }
+
+    screen_reset_color();
+}
+
 void render_food(const Food *f, Board *b, const Theme *t) {
     int color;
     char ch;

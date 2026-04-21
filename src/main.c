@@ -8,6 +8,7 @@
 #include "game/score.h"
 #include "game/obstacles.h"
 #include "game/stats.h"
+#include "game/ghost.h"
 #include "ui/renderer.h"
 #include "ui/screens.h"
 #include "ui/themes.h"
@@ -18,7 +19,7 @@
 #define OFFSET_X 2
 #define OFFSET_Y 2
 
-static int food_placement_invalid(Food *f, Snake *snake, Obstacles *obs,
+static int food_placement_invalid(Food *f, Snake *snake, Snake *ghost, Obstacles *obs,
                                   int bw, int bh) {
     SnakeSegment *seg;
     int i;
@@ -29,30 +30,32 @@ static int food_placement_invalid(Food *f, Snake *snake, Obstacles *obs,
     for (seg = snake->head; seg != NULL; seg = seg->next) {
         if (seg->x == f->x && seg->y == f->y) return 1;
     }
+    if (ghost && snake_occupies_cell(ghost, f->x, f->y)) return 1;
     for (i = 0; i < obs->count; i++) {
         if (obs->items[i].x == f->x && obs->items[i].y == f->y) return 1;
     }
     return 0;
 }
 
-static int foods_any_invalid(Foods *fs, Snake *snake, Obstacles *obs,
+static int foods_any_invalid(Foods *fs, Snake *snake, Snake *ghost, Obstacles *obs,
                              int bw, int bh) {
     int i;
 
     for (i = 0; i < fs->count; i++) {
-        if (food_placement_invalid(&fs->pieces[i], snake, obs, bw, bh)) return 1;
+        if (food_placement_invalid(&fs->pieces[i], snake, ghost, obs, bw, bh)) return 1;
     }
     return 0;
 }
 
-static void redraw_full_game(Board *board, Snake *snake, Foods *foods,
+static void redraw_full_game(Board *board, Snake *snake, Snake *ghost, Foods *foods,
                              Obstacles *obs, Score *score, const Theme *theme) {
     (void)obs;
 
     screen_clear();
     render_border(board, theme);
-    render_snake(snake, theme);
     render_foods(foods, board, theme);
+    if (ghost) render_ghost_snake(ghost, theme);
+    render_snake(snake, theme);
     render_hud(score, board);
     screen_flush();
 }
@@ -80,10 +83,11 @@ static int wait_for_valid_terminal(void) {
  * Returns: 0 ok, -1 user quit (Q while too small), 1 snake died (squashed/overlap).
  */
 static int apply_terminal_resize(int *board_w, int *board_h, Board *board,
-                                 Snake *snake, Foods *foods, Obstacles *obs,
+                                 Snake *snake, Snake **ghost, Foods *foods, Obstacles *obs,
                                  Score *score, const Theme *theme, int *seed,
                                  int paused) {
     int tw, th;
+    Snake *g;
 
     tw = get_terminal_width();
     th = get_terminal_height();
@@ -103,9 +107,22 @@ static int apply_terminal_resize(int *board_w, int *board_h, Board *board,
         return 1;
     }
 
-    if (foods_any_invalid(foods, snake, obs, *board_w, *board_h)) {
+    g = ghost ? *ghost : NULL;
+    if (ghost && *ghost) {
+        if (!snake_refit_to_board(*ghost, *board_w, *board_h)) {
+            snake_free(*ghost);
+            *ghost = ghost_create(snake, foods, obs, *board_w, *board_h, seed);
+        }
+        g = *ghost;
+        if (g && snake_snakes_overlap(snake, g)) {
+            snake->alive = 0;
+            return 1;
+        }
+    }
+
+    if (foods_any_invalid(foods, snake, g, obs, *board_w, *board_h)) {
         foods_clear(foods);
-        foods_fill_to_target(foods, snake, obs, *board_w, *board_h, seed,
+        foods_fill_to_target(foods, snake, g, obs, *board_w, *board_h, seed,
                               foods_target_count(score->level));
         if (foods->count == 0) {
             snake->alive = 0;
@@ -113,7 +130,7 @@ static int apply_terminal_resize(int *board_w, int *board_h, Board *board,
         }
     }
 
-    redraw_full_game(board, snake, foods, obs, score, theme);
+    redraw_full_game(board, snake, g, foods, obs, score, theme);
     if (paused) show_pause_overlay(board);
     return 0;
 }
@@ -145,6 +162,9 @@ int main(void) {
     int speed;
     int points;
     int target_food;
+    Snake *ghost;
+    int ghost_tail_x, ghost_tail_y;
+    int ghost_moved;
 
     /* init systems */
     memory_init();
@@ -188,14 +208,17 @@ int main(void) {
         obstacles_init(&obstacles);
         foods_init(&foods);
         target_food = foods_target_count(score->level);
-        foods_fill_to_target(&foods, snake, &obstacles, board_w, board_h, &seed,
+        foods_fill_to_target(&foods, snake, NULL, &obstacles, board_w, board_h, &seed,
                              target_food);
+
+        ghost = ghost_create(snake, &foods, &obstacles, board_w, board_h, &seed);
 
         /* initial draw */
         screen_clear();
         render_border(board, theme);
-        render_snake(snake, theme);
         render_foods(&foods, board, theme);
+        if (ghost) render_ghost_snake(ghost, theme);
+        render_snake(snake, theme);
         render_hud(score, board);
         screen_flush();
 
@@ -207,8 +230,9 @@ int main(void) {
         /* game loop */
         while (snake->alive) {
             if (terminal_consume_winch()) {
-                int ar = apply_terminal_resize(&board_w, &board_h, board, snake, &foods,
-                                              &obstacles, score, theme, &seed, paused);
+                int ar = apply_terminal_resize(&board_w, &board_h, board, snake, &ghost,
+                                              &foods, &obstacles, score, theme, &seed,
+                                              paused);
                 if (ar == -1) {
                     running = 0;
                     snake->alive = 0;
@@ -232,7 +256,7 @@ int main(void) {
                 if (paused) {
                     show_pause_overlay(board);
                 } else {
-                    redraw_full_game(board, snake, &foods, &obstacles, score, theme);
+                    redraw_full_game(board, snake, ghost, &foods, &obstacles, score, theme);
                 }
                 continue;
             }
@@ -305,8 +329,8 @@ int main(void) {
                 }
 
                 target_food = foods_target_count(score->level);
-                foods_fill_to_target(&foods, snake, &obstacles, board_w, board_h, &seed,
-                                     target_food);
+                foods_fill_to_target(&foods, snake, ghost, &obstacles, board_w, board_h,
+                                     &seed, target_food);
                 if (foods.count == 0) {
                     /* victory! board is full */
                     show_victory(score, board);
@@ -321,6 +345,11 @@ int main(void) {
                 render_erase_tail(old_tail_x, old_tail_y, board);
             }
 
+            if (ghost && snake_snakes_overlap(snake, ghost)) {
+                snake->alive = 0;
+                break;
+            }
+
             /* 8. food despawn countdown (timed bonus/slow items) */
             {
                 int i = 0;
@@ -332,8 +361,8 @@ int main(void) {
                             screen_put_char(OFFSET_X + foods.pieces[i].x,
                                            OFFSET_Y + foods.pieces[i].y, ' ');
                             foods_remove_at(&foods, i);
-                            foods_fill_to_target(&foods, snake, &obstacles, board_w,
-                                               board_h, &seed, target_food);
+                            foods_fill_to_target(&foods, snake, ghost, &obstacles,
+                                               board_w, board_h, &seed, target_food);
                             continue;
                         }
                     }
@@ -341,7 +370,21 @@ int main(void) {
                 }
             }
 
+            ghost_moved = 0;
+            if (ghost) {
+                ghost_tail_x = ghost->tail->x;
+                ghost_tail_y = ghost->tail->y;
+                ghost_moved = ghost_step(ghost, board, &seed);
+                if (ghost_moved)
+                    render_erase_tail(ghost_tail_x, ghost_tail_y, board);
+                if (snake_snakes_overlap(snake, ghost)) {
+                    snake->alive = 0;
+                    break;
+                }
+            }
+
             /* 9. render and wait */
+            if (ghost) render_ghost_snake(ghost, theme);
             render_snake(snake, theme);
             if (score->score != last_score) {
                 render_hud(score, board);
@@ -378,6 +421,7 @@ int main(void) {
 
         /* cleanup for restart or exit */
         snake_free(snake);
+        if (ghost) snake_free(ghost);
         score_free(score);
         board_free(board);
     }

@@ -10,6 +10,7 @@
 
 void render_border(Board *b, const Theme *t);
 void render_snake(Snake *s, const Theme *t);
+void render_ghost_snake(const Snake *s, const Theme *t);
 void render_food(const Food *f, Board *b, const Theme *t);
 void render_foods(const Foods *fs, Board *b, const Theme *t);
 void render_hud(Score *s, Board *b);
