@@ -24,7 +24,6 @@ This document tracks post–presentation fixes and planned Phase 2 work.
 | Feature | Summary |
 |--------|---------|
 | **AI ghost snake** | **Done:** Random-move second snake (`g`/`o`); **any overlap with the player ends the game.** |
-| **Speed powerup zones** | Glowing regions on the board that **temporarily speed up or slow down** the player snake when passed through. |
 | **Shrinking board** | **Walls advance inward** by one row/column on a timer or per level, reducing playable area and increasing difficulty. |
 | **Multiple food** | **Done:** target `max(3, 1 + level)` (max 8) — **3+ foods from game start**; each eat triggers refill to target. |
 | **Replay / ghost mode** | **Record player inputs** each run. On the **next** game, show a **ghost snake** replaying the **best recorded run** (or similar “best run” policy), alongside live play. |
@@ -36,9 +35,8 @@ This document tracks post–presentation fixes and planned Phase 2 work.
 1. **SIGWINCH** — unblocks correct behavior when the terminal changes size.
 2. **Multiple food** — extends existing food/spawn logic; good foundation for higher difficulty.
 3. **Shrinking board** — changes bounds and collision; pairs well with multi-food and level scaling.
-4. **Speed zones** — new entity type + timed modifiers on top of a stable board.
-5. **AI ghost snake** — second mover + collision rules.
-6. **Replay / ghost** — input recording, storage, and synchronized playback (largest cross-cutting effort).
+4. **AI ghost snake** — second mover + collision rules.
+5. **Replay / ghost** — input recording, storage, and synchronized playback (largest cross-cutting effort).
 
 ---
 

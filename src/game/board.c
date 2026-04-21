@@ -17,6 +17,32 @@ int get_terminal_height(void) {
     return w.ws_row;
 }
 
+void terminal_sync_winsize(void) {
+    usleep(2000);
+}
+
+void board_sync_from_terminal(Board *b) {
+    int tw;
+    int th;
+
+    if (!b) return;
+    tw = get_terminal_width();
+    th = get_terminal_height();
+    if (tw < MIN_TERMINAL_COLS || th < MIN_TERMINAL_ROWS) return;
+    board_set_size(b, tw - 4, th - 6);
+}
+
+int board_matches_terminal(const Board *b) {
+    int tw;
+    int th;
+
+    if (!b) return 1;
+    tw = get_terminal_width();
+    th = get_terminal_height();
+    if (tw < MIN_TERMINAL_COLS || th < MIN_TERMINAL_ROWS) return 0;
+    return (tw - 4 == b->width) && (th - 6 == b->height);
+}
+
 static volatile sig_atomic_t g_winch_pending;
 
 static void winch_handler(int sig) {

@@ -26,6 +26,12 @@ void snake_free(Snake *s);
 /* Move snake rigidly so it fits 0..new_w-1, 0..new_h-1. Returns 0 if impossible. */
 int snake_refit_to_board(Snake *s, int new_w, int new_h);
 
+/*
+ * One shared translation for player + ghost so independent centering cannot
+ * stack both snakes on the same cells after resize. ghost may be NULL.
+ */
+int snakes_refit_union(Snake *player, Snake *ghost, int new_w, int new_h);
+
 int snake_occupies_cell(const Snake *s, int x, int y);
 int snake_snakes_overlap(const Snake *a, const Snake *b);
 

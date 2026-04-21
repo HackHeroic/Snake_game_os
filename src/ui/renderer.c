@@ -134,11 +134,11 @@ void render_hud(Score *s, Board *b) {
     my_strcat(line, "  |  Mode: ");
     my_strcat(line, b->mode ? "Wrap" : "Classic");
 
-    /* clear the line first to prevent leftover chars */
-    screen_put_str(OFFSET_X, hud_y, "                                                              ");
+    screen_clear_line(hud_y);
     screen_put_str(OFFSET_X, hud_y, line);
 
     my_strcpy(line, "WASD/Arrows: Move  |  P: Pause  |  Q: Quit");
+    screen_clear_line(hud_y + 1);
     screen_put_str(OFFSET_X, hud_y + 1, line);
 }
 

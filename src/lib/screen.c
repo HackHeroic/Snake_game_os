@@ -10,6 +10,11 @@ void screen_goto(int x, int y) {
     printf("\033[%d;%dH", y, x);
 }
 
+void screen_clear_line(int y) {
+    screen_goto(1, y);
+    printf("\033[2K");
+}
+
 void screen_put_char(int x, int y, char c) {
     screen_goto(x, y);
     putchar(c);

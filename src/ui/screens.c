@@ -4,6 +4,7 @@
 #include "../lib/string.h"
 #include "../lib/math.h"
 #include "../game/stats.h"
+#include "../game/board.h"
 #include <unistd.h>
 #include <stddef.h>
 
@@ -97,34 +98,49 @@ void show_pause_overlay(Board *b) {
     screen_flush();
 }
 
+static int seg_on_board(const Board *b, int x, int y) {
+    return x >= 0 && x < b->width && y >= 0 && y < b->height;
+}
+
 void show_game_over(Snake *s, Board *b, Score *sc) {
     SnakeSegment *seg;
     int flash;
     int i;
 
     (void)sc;
-    (void)b;
 
     /* flash snake red 3 times */
     for (flash = 0; flash < 3; flash++) {
+        terminal_sync_winsize();
+        board_sync_from_terminal(b);
+        (void)snake_refit_to_board(s, b->width, b->height);
+        screen_clear();
         /* red */
         screen_set_color(196);
         seg = s->head;
         while (seg) {
-            screen_put_char(OFFSET_X + seg->x, OFFSET_Y + seg->y,
-                           seg == s->head ? '@' : 'O');
+            if (seg_on_board(b, seg->x, seg->y)) {
+                screen_put_char(OFFSET_X + seg->x, OFFSET_Y + seg->y,
+                               seg == s->head ? '@' : 'O');
+            }
             seg = seg->next;
         }
         screen_reset_color();
         screen_flush();
         usleep(150000);
 
+        terminal_sync_winsize();
+        board_sync_from_terminal(b);
+        (void)snake_refit_to_board(s, b->width, b->height);
+        screen_clear();
         /* dim */
         screen_set_color(240);
         seg = s->head;
         while (seg) {
-            screen_put_char(OFFSET_X + seg->x, OFFSET_Y + seg->y,
-                           seg == s->head ? '@' : 'O');
+            if (seg_on_board(b, seg->x, seg->y)) {
+                screen_put_char(OFFSET_X + seg->x, OFFSET_Y + seg->y,
+                               seg == s->head ? '@' : 'O');
+            }
             seg = seg->next;
         }
         screen_reset_color();
@@ -132,13 +148,21 @@ void show_game_over(Snake *s, Board *b, Score *sc) {
         usleep(150000);
     }
 
-    /* sequential disappearance from tail to head */
+    /* sequential disappearance from tail toward head */
     for (i = s->length - 1; i >= 0; i--) {
         int j = 0;
+        terminal_sync_winsize();
+        board_sync_from_terminal(b);
+        (void)snake_refit_to_board(s, b->width, b->height);
         seg = s->head;
-        while (seg && j < i) { seg = seg->next; j++; }
+        while (seg && j < i) {
+            seg = seg->next;
+            j++;
+        }
         if (seg) {
-            screen_put_char(OFFSET_X + seg->x, OFFSET_Y + seg->y, ' ');
+            if (seg_on_board(b, seg->x, seg->y)) {
+                screen_put_char(OFFSET_X + seg->x, OFFSET_Y + seg->y, ' ');
+            }
             screen_flush();
             usleep(50000);
         }
@@ -146,64 +170,88 @@ void show_game_over(Snake *s, Board *b, Score *sc) {
 }
 
 int show_game_over_prompt(Board *b, Score *s, Stats *st) {
-    int cx = OFFSET_X + my_divide(b->width, 2) - 4;
-    int cy = OFFSET_Y + my_divide(b->height, 2);
+    int cx;
+    int cy;
+    int key;
     char score_str[16];
     char high_str[16];
     char line[64];
     char num_str[16];
-    int key;
 
-    screen_set_color(196);
-    screen_put_str(cx, cy - 1, "GAME OVER");
-    screen_reset_color();
+    for (;;) {
+        int tw;
+        int th;
 
-    int_to_str(s->score, score_str);
-    int_to_str(s->high_score, high_str);
+        terminal_sync_winsize();
+        screen_clear();
+        board_sync_from_terminal(b);
 
-    my_strcpy(line, "Score: ");
-    my_strcat(line, score_str);
-    my_strcat(line, "  High: ");
-    my_strcat(line, high_str);
-    screen_put_str(cx - 2, cy + 1, line);
+        cx = OFFSET_X + my_divide(b->width, 2) - 4;
+        cy = OFFSET_Y + my_divide(b->height, 2);
 
-    screen_put_str(cx - 4, cy + 3, "R: Restart  |  Q: Quit");
+        screen_set_color(196);
+        screen_put_str(cx, cy - 1, "GAME OVER");
+        screen_reset_color();
 
-    /* lifetime stats */
-    screen_set_color(240);
-    screen_put_str(cx - 5, cy + 5, "--- Lifetime Stats ---");
+        int_to_str(s->score, score_str);
+        int_to_str(s->high_score, high_str);
 
-    my_strcpy(line, "Games: ");
-    int_to_str(st->games_played, num_str);
-    my_strcat(line, num_str);
-    my_strcat(line, "    Food: ");
-    int_to_str(st->total_food, num_str);
-    my_strcat(line, num_str);
-    screen_put_str(cx - 5, cy + 6, line);
+        my_strcpy(line, "Score: ");
+        my_strcat(line, score_str);
+        my_strcat(line, "  High: ");
+        my_strcat(line, high_str);
+        screen_put_str(cx - 2, cy + 1, line);
 
-    my_strcpy(line, "Longest: ");
-    int_to_str(st->longest_snake, num_str);
-    my_strcat(line, num_str);
-    my_strcat(line, "  Best Lvl: ");
-    int_to_str(st->best_level, num_str);
-    my_strcat(line, num_str);
-    screen_put_str(cx - 5, cy + 7, line);
-    screen_reset_color();
+        screen_put_str(cx - 4, cy + 3, "R: Restart  |  Q: Quit");
 
-    screen_flush();
+        screen_set_color(240);
+        screen_put_str(cx - 5, cy + 5, "--- Lifetime Stats ---");
 
-    while (1) {
-        key = read_key();
-        if (key == 'r' || key == 'R') return 'r';
-        if (key == 'q' || key == 'Q') return 'q';
-        usleep(16000);
+        my_strcpy(line, "Games: ");
+        int_to_str(st->games_played, num_str);
+        my_strcat(line, num_str);
+        my_strcat(line, "    Food: ");
+        int_to_str(st->total_food, num_str);
+        my_strcat(line, num_str);
+        screen_put_str(cx - 5, cy + 6, line);
+
+        my_strcpy(line, "Longest: ");
+        int_to_str(st->longest_snake, num_str);
+        my_strcat(line, num_str);
+        my_strcat(line, "  Best Lvl: ");
+        int_to_str(st->best_level, num_str);
+        my_strcat(line, num_str);
+        screen_put_str(cx - 5, cy + 7, line);
+        screen_reset_color();
+
+        screen_flush();
+
+        for (;;) {
+            key = read_key();
+            if (key == 'r' || key == 'R') return 'r';
+            if (key == 'q' || key == 'Q') return 'q';
+            tw = get_terminal_width();
+            th = get_terminal_height();
+            if (terminal_consume_winch()) break;
+            if (tw >= MIN_TERMINAL_COLS && th >= MIN_TERMINAL_ROWS &&
+                (tw - 4 != b->width || th - 6 != b->height))
+                break;
+            usleep(16000);
+        }
     }
 }
 
 void show_victory(Score *s, Board *b) {
-    int cx = OFFSET_X + my_divide(b->width, 2) - 4;
-    int cy = OFFSET_Y + my_divide(b->height, 2);
+    int cx;
+    int cy;
     char score_str[16];
+
+    terminal_sync_winsize();
+    screen_clear();
+    board_sync_from_terminal(b);
+
+    cx = OFFSET_X + my_divide(b->width, 2) - 4;
+    cy = OFFSET_Y + my_divide(b->height, 2);
 
     screen_set_color(46);
     screen_put_str(cx, cy, "YOU WIN!");

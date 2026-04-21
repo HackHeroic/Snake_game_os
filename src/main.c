@@ -89,6 +89,7 @@ static int apply_terminal_resize(int *board_w, int *board_h, Board *board,
     int tw, th;
     Snake *g;
 
+    terminal_sync_winsize();
     tw = get_terminal_width();
     th = get_terminal_height();
 
@@ -102,19 +103,23 @@ static int apply_terminal_resize(int *board_w, int *board_h, Board *board,
     *board_h = th - 6;
     board_set_size(board, *board_w, *board_h);
 
-    if (!snake_refit_to_board(snake, *board_w, *board_h)) {
-        snake->alive = 0;
-        return 1;
-    }
-
     g = ghost ? *ghost : NULL;
     if (ghost && *ghost) {
-        if (!snake_refit_to_board(*ghost, *board_w, *board_h)) {
+        if (!snakes_refit_union(snake, *ghost, *board_w, *board_h)) {
+            if (!snake_refit_to_board(snake, *board_w, *board_h)) {
+                snake->alive = 0;
+                return 1;
+            }
             snake_free(*ghost);
             *ghost = ghost_create(snake, foods, obs, *board_w, *board_h, seed);
         }
         g = *ghost;
         if (g && snake_snakes_overlap(snake, g)) {
+            snake->alive = 0;
+            return 1;
+        }
+    } else {
+        if (!snake_refit_to_board(snake, *board_w, *board_h)) {
             snake->alive = 0;
             return 1;
         }
@@ -229,7 +234,7 @@ int main(void) {
 
         /* game loop */
         while (snake->alive) {
-            if (terminal_consume_winch()) {
+            if (terminal_consume_winch() || !board_matches_terminal(board)) {
                 int ar = apply_terminal_resize(&board_w, &board_h, board, snake, &ghost,
                                               &foods, &obstacles, score, theme, &seed,
                                               paused);

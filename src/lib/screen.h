@@ -2,6 +2,7 @@
 #define MY_SCREEN_H
 
 void screen_clear(void);
+void screen_clear_line(int y);
 void screen_goto(int x, int y);
 void screen_put_char(int x, int y, char c);
 void screen_put_str(int x, int y, const char *s);

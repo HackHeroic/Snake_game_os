@@ -91,22 +91,29 @@ void snake_set_direction(Snake *s, Direction dir) {
     s->direction = dir;
 }
 
-int snake_refit_to_board(Snake *s, int new_w, int new_h) {
+static void expand_bbox(Snake *s, int *min_x, int *max_x, int *min_y, int *max_y) {
+    SnakeSegment *seg;
+
+    for (seg = s->head; seg != NULL; seg = seg->next) {
+        if (seg->x < *min_x) *min_x = seg->x;
+        if (seg->x > *max_x) *max_x = seg->x;
+        if (seg->y < *min_y) *min_y = seg->y;
+        if (seg->y > *max_y) *max_y = seg->y;
+    }
+}
+
+int snakes_refit_union(Snake *player, Snake *ghost, int new_w, int new_h) {
     SnakeSegment *seg;
     int min_x, max_x, min_y, max_y;
     int bw, bh;
     int ox, oy;
 
-    if (!s || !s->head) return 0;
+    if (!player || !player->head) return 0;
 
-    min_x = max_x = s->head->x;
-    min_y = max_y = s->head->y;
-    for (seg = s->head; seg != NULL; seg = seg->next) {
-        if (seg->x < min_x) min_x = seg->x;
-        if (seg->x > max_x) max_x = seg->x;
-        if (seg->y < min_y) min_y = seg->y;
-        if (seg->y > max_y) max_y = seg->y;
-    }
+    min_x = max_x = player->head->x;
+    min_y = max_y = player->head->y;
+    expand_bbox(player, &min_x, &max_x, &min_y, &max_y);
+    if (ghost && ghost->head) expand_bbox(ghost, &min_x, &max_x, &min_y, &max_y);
 
     bw = max_x - min_x + 1;
     bh = max_y - min_y + 1;
@@ -115,16 +122,32 @@ int snake_refit_to_board(Snake *s, int new_w, int new_h) {
     ox = -min_x + my_divide(new_w - bw, 2);
     oy = -min_y + my_divide(new_h - bh, 2);
 
-    for (seg = s->head; seg != NULL; seg = seg->next) {
+    for (seg = player->head; seg != NULL; seg = seg->next) {
         seg->x += ox;
         seg->y += oy;
     }
+    if (ghost && ghost->head) {
+        for (seg = ghost->head; seg != NULL; seg = seg->next) {
+            seg->x += ox;
+            seg->y += oy;
+        }
+    }
 
-    for (seg = s->head; seg != NULL; seg = seg->next) {
+    for (seg = player->head; seg != NULL; seg = seg->next) {
         if (seg->x < 0 || seg->x >= new_w || seg->y < 0 || seg->y >= new_h)
             return 0;
     }
+    if (ghost && ghost->head) {
+        for (seg = ghost->head; seg != NULL; seg = seg->next) {
+            if (seg->x < 0 || seg->x >= new_w || seg->y < 0 || seg->y >= new_h)
+                return 0;
+        }
+    }
     return 1;
+}
+
+int snake_refit_to_board(Snake *s, int new_w, int new_h) {
+    return snakes_refit_union(s, NULL, new_w, new_h);
 }
 
 int snake_occupies_cell(const Snake *s, int x, int y) {

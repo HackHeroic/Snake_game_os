@@ -25,4 +25,13 @@ int terminal_consume_winch(void);
 
 void board_set_size(Board *b, int width, int height);
 
+/* After SIGWINCH, ioctl can lag; brief delay before TIOCGWINSZ. */
+void terminal_sync_winsize(void);
+
+/* Set board->width/height from current terminal (no-op if too small). */
+void board_sync_from_terminal(Board *b);
+
+/* True when terminal size matches board layout (same as main's tw-4 / th-6). */
+int board_matches_terminal(const Board *b);
+
 #endif
