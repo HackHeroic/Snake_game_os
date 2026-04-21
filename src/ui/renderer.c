@@ -63,7 +63,7 @@ void render_snake(Snake *s, const Theme *t) {
     screen_reset_color();
 }
 
-void render_food(Food *f, Board *b, const Theme *t) {
+void render_food(const Food *f, Board *b, const Theme *t) {
     int color;
     char ch;
 
@@ -83,6 +83,15 @@ void render_food(Food *f, Board *b, const Theme *t) {
     screen_set_color(color);
     screen_put_char(OFFSET_X + f->x, OFFSET_Y + f->y, ch);
     screen_reset_color();
+}
+
+void render_foods(const Foods *fs, Board *b, const Theme *t) {
+    int i;
+
+    if (!fs) return;
+    for (i = 0; i < fs->count; i++) {
+        render_food(&fs->pieces[i], b, t);
+    }
 }
 
 void render_hud(Score *s, Board *b) {

@@ -1,6 +1,13 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+/*
+ * Minimum terminal dimensions so the playfield is valid:
+ * board_w = cols - 4 >= 4 (three-segment snake along x), board_h = rows - 6 >= 1.
+ */
+#define MIN_TERMINAL_COLS 8
+#define MIN_TERMINAL_ROWS 7
+
 typedef struct {
     int width, height;
     int mode;  /* 0 = Classic, 1 = Wrap */

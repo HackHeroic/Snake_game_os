@@ -26,7 +26,7 @@ This document tracks post–presentation fixes and planned Phase 2 work.
 | **AI ghost snake** | A second snake controlled by the computer, moving randomly on the board. **Collision with it kills the player** (same severity as other fatal collisions). |
 | **Speed powerup zones** | Glowing regions on the board that **temporarily speed up or slow down** the player snake when passed through. |
 | **Shrinking board** | **Walls advance inward** by one row/column on a timer or per level, reducing playable area and increasing difficulty. |
-| **Multiple food** | At **higher levels**, spawn **more than one food** on the board at the same time (today only one food exists at a time). |
+| **Multiple food** | **Done:** target `max(3, 1 + level)` (max 8) — **3+ foods from game start**; each eat triggers refill to target. |
 | **Replay / ghost mode** | **Record player inputs** each run. On the **next** game, show a **ghost snake** replaying the **best recorded run** (or similar “best run” policy), alongside live play. |
 
 ---

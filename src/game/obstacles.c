@@ -1,4 +1,5 @@
 #include "obstacles.h"
+#include "food.h"
 #include "../lib/math.h"
 
 void obstacles_init(Obstacles *obs) {
@@ -6,7 +7,7 @@ void obstacles_init(Obstacles *obs) {
 }
 
 /* check if position is safe for a new obstacle */
-static int is_safe(Obstacles *obs, Snake *s, Food *f,
+static int is_safe(Obstacles *obs, Snake *s, Foods *foods,
                    int x, int y) {
     SnakeSegment *seg;
     int i;
@@ -19,7 +20,7 @@ static int is_safe(Obstacles *obs, Snake *s, Food *f,
     }
 
     /* check food */
-    if (f && f->x == x && f->y == y)
+    if (foods && foods_occupy(foods, x, y))
         return 0;
 
     /* check snake segments */
@@ -40,8 +41,8 @@ static int is_safe(Obstacles *obs, Snake *s, Food *f,
     return 1;
 }
 
-void obstacles_spawn(Obstacles *obs, Snake *s, Food *f,
-                     int board_w, int board_h, int *seed) {
+void obstacles_spawn(Obstacles *obs, Snake *s, Foods *foods,
+                       int board_w, int board_h, int *seed) {
     int to_spawn;
     int x, y;
     int retries;
@@ -58,7 +59,7 @@ void obstacles_spawn(Obstacles *obs, Snake *s, Food *f,
             x = my_mod(my_abs(pseudo_random(seed)), board_w);
             y = my_mod(my_abs(pseudo_random(seed)), board_h);
 
-            if (is_safe(obs, s, f, x, y)) {
+            if (is_safe(obs, s, foods, x, y)) {
                 obs->items[obs->count].x = x;
                 obs->items[obs->count].y = y;
                 obs->count++;
