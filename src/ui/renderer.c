@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include "themes.h"
+#include "../game/speed_zones.h"
 #include "../lib/screen.h"
 #include "../lib/string.h"
 #include "../lib/math.h"
@@ -8,6 +9,86 @@
 /* border offset: game area starts at (2,2) to leave room for border */
 #define OFFSET_X 2
 #define OFFSET_Y 2
+
+void render_foods(Foods *fs, Board *b, const Theme *t) {
+    int i;
+    if (!fs) return;
+    for (i = 0; i < fs->count; i++) {
+        if (fs->slot[i].x >= 0 && fs->slot[i].x < b->width
+            && fs->slot[i].y >= 0 && fs->slot[i].y < b->height) {
+            render_food(&fs->slot[i], b, t);
+        }
+    }
+}
+
+void render_speed_zones(const SpeedZones *sz, Board *b, const Theme *t) {
+    int j, d;
+    (void)b;
+    (void)t;
+    if (!sz) return;
+    for (j = 0; j < sz->count; j++) {
+        d = sz->items[j].delta_ms;
+        screen_set_color(d < 0 ? 39 : 93);
+        screen_put_char(OFFSET_X + sz->items[j].x, OFFSET_Y + sz->items[j].y, ':');
+    }
+    screen_reset_color();
+}
+
+void render_restore_cell(int x, int y, const SpeedZones *sz, Board *b, const Theme *t) {
+    int d;
+    (void)b;
+    (void)t;
+    d = speed_zones_delta_at(sz, x, y);
+    if (d != 0) {
+        screen_set_color(d < 0 ? 39 : 93);
+        screen_put_char(OFFSET_X + x, OFFSET_Y + y, ':');
+    } else {
+        screen_put_char(OFFSET_X + x, OFFSET_Y + y, ' ');
+    }
+    screen_reset_color();
+}
+
+void render_replay_dot(int x, int y, const Theme *t, int on) {
+    (void)t;
+    if (!on) return;
+    screen_set_color(240);
+    screen_put_char(OFFSET_X + x, OFFSET_Y + y, '.');
+    screen_reset_color();
+}
+
+void render_ghost(Snake *g, const Theme *t) {
+    SnakeSegment *seg;
+    int dist;
+
+    if (!g || !g->head) return;
+    dist = 0;
+    for (seg = g->head; seg; seg = seg->next) {
+        screen_set_color(t->ghost_color);
+        screen_put_char(OFFSET_X + seg->x, OFFSET_Y + seg->y, dist == 0 ? 'G' : 'g');
+        dist++;
+    }
+    screen_reset_color();
+}
+
+void render_full_frame(const Theme *t, Board *b, Snake *s, Snake *ghost, Foods *foods,
+                      Obstacles *o, Score *sc, const SpeedZones *sz,
+                      int rep_x, int rep_y, int show_repl) {
+    int inb;
+
+    inb = (show_repl && rep_x >= 0 && rep_x < b->width && rep_y >= 0 && rep_y < b->height);
+    screen_clear();
+    render_border(b, t);
+    if (sz) render_speed_zones(sz, b, t);
+    render_foods(foods, b, t);
+    render_obstacles(o, b, t);
+    if (inb) {
+        render_replay_dot(rep_x, rep_y, t, 1);
+    }
+    if (ghost) render_ghost(ghost, t);
+    if (s) render_snake(s, t);
+    render_hud(sc, b);
+    screen_flush();
+}
 
 void render_border(Board *b, const Theme *t) {
     int i;
@@ -106,11 +187,12 @@ void render_hud(Score *s, Board *b) {
     my_strcat(line, "  |  Mode: ");
     my_strcat(line, b->mode ? "Wrap" : "Classic");
 
-    /* clear the line first to prevent leftover chars */
-    screen_put_str(OFFSET_X, hud_y, "                                                              ");
+    /* avoid leftover chars and reflow: clear whole line to end */
+    screen_clear_line(hud_y);
     screen_put_str(OFFSET_X, hud_y, line);
 
     my_strcpy(line, "WASD/Arrows: Move  |  P: Pause  |  Q: Quit");
+    screen_clear_line(hud_y + 1);
     screen_put_str(OFFSET_X, hud_y + 1, line);
 }
 

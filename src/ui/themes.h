@@ -9,6 +9,7 @@ typedef struct {
     int slow_food_color;
     int obstacle_color;
     int border_color;
+    int ghost_color;      /* AI ghost snake */
     int rainbow;          /* 1 = use rainbow body logic, 0 = use gradient */
 } Theme;
 

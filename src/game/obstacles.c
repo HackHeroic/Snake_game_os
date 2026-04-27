@@ -6,7 +6,7 @@ void obstacles_init(Obstacles *obs) {
 }
 
 /* check if position is safe for a new obstacle */
-static int is_safe(Obstacles *obs, Snake *s, Food *f,
+static int is_safe(Obstacles *obs, Snake *s, Foods *foods,
                    int x, int y) {
     SnakeSegment *seg;
     int i;
@@ -18,9 +18,11 @@ static int is_safe(Obstacles *obs, Snake *s, Food *f,
             return 0;
     }
 
-    /* check food */
-    if (f && f->x == x && f->y == y)
-        return 0;
+    if (foods) {
+        for (i = 0; i < foods->count; i++) {
+            if (foods->slot[i].x == x && foods->slot[i].y == y) return 0;
+        }
+    }
 
     /* check snake segments */
     seg = s->head;
@@ -40,7 +42,7 @@ static int is_safe(Obstacles *obs, Snake *s, Food *f,
     return 1;
 }
 
-void obstacles_spawn(Obstacles *obs, Snake *s, Food *f,
+void obstacles_spawn(Obstacles *obs, Snake *s, Foods *foods,
                      int board_w, int board_h, int *seed) {
     int to_spawn;
     int x, y;
@@ -58,7 +60,7 @@ void obstacles_spawn(Obstacles *obs, Snake *s, Food *f,
             x = my_mod(my_abs(pseudo_random(seed)), board_w);
             y = my_mod(my_abs(pseudo_random(seed)), board_h);
 
-            if (is_safe(obs, s, f, x, y)) {
+            if (is_safe(obs, s, foods, x, y)) {
                 obs->items[obs->count].x = x;
                 obs->items[obs->count].y = y;
                 obs->count++;
@@ -68,6 +70,22 @@ void obstacles_spawn(Obstacles *obs, Snake *s, Food *f,
         }
         to_spawn--;
     }
+}
+
+void obstacles_cull_outside(Obstacles *obs, int board_w, int board_h) {
+    int i, w;
+
+    w = 0;
+    for (i = 0; i < obs->count; i++) {
+        if (obs->items[i].x >= 0 && obs->items[i].x < board_w
+            && obs->items[i].y >= 0 && obs->items[i].y < board_h) {
+            if (i != w) {
+                obs->items[w] = obs->items[i];
+            }
+            w++;
+        }
+    }
+    obs->count = w;
 }
 
 int obstacles_check_collision(Obstacles *obs, int x, int y) {
