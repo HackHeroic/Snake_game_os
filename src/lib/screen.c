@@ -2,7 +2,10 @@
 #include <stdio.h>
 
 void screen_clear(void) {
-    printf("\033[2J\033[H");
+    /* \033[H home, \033[2J clear viewport, \033[3J clear scrollback.
+     * Without \033[3J, after Cmd+/Cmd- the prior frame can remain visible
+     * in the scrollback area when the viewport grows. */
+    printf("\033[H\033[2J\033[3J");
 }
 
 void screen_goto(int x, int y) {
