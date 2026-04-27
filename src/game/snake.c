@@ -91,6 +91,55 @@ void snake_set_direction(Snake *s, Direction dir) {
     s->direction = dir;
 }
 
+void snake_fit_board(Snake *s, int w, int h) {
+    int any_oob;
+    SnakeSegment *prev;
+
+    for (;;) {
+        if (!s->head) {
+            s->alive = 0;
+            return;
+        }
+        if (s->head->x < 0 || s->head->x >= w
+            || s->head->y < 0 || s->head->y >= h) {
+            s->alive = 0;
+            return;
+        }
+
+        any_oob = 0;
+        for (prev = s->head; prev != NULL; prev = prev->next) {
+            if (prev->x < 0 || prev->x >= w
+                || prev->y < 0 || prev->y >= h) {
+                any_oob = 1;
+                break;
+            }
+        }
+        if (!any_oob) return;
+
+        if (s->head == s->tail) {
+            s->alive = 0;
+            return;
+        }
+        prev = s->head;
+        while (prev->next != s->tail) {
+            prev = prev->next;
+        }
+        dealloc(s->tail);
+        s->tail = prev;
+        s->tail->next = NULL;
+        s->length--;
+    }
+}
+
+int snake_occupies(Snake *s, int x, int y) {
+    SnakeSegment *seg;
+    if (!s) return 0;
+    for (seg = s->head; seg; seg = seg->next) {
+        if (seg->x == x && seg->y == y) return 1;
+    }
+    return 0;
+}
+
 void snake_free(Snake *s) {
     SnakeSegment *seg;
     SnakeSegment *next;

@@ -11,5 +11,7 @@ void keyboard_init(void);
 void keyboard_restore(void);
 int key_pressed(void);
 int read_key(void);
+/* Returns 1 once after SIGWINCH; safe to call each frame. */
+int keyboard_consume_resize(void);
 
 #endif

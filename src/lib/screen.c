@@ -2,7 +2,13 @@
 #include <stdio.h>
 
 void screen_clear(void) {
-    printf("\033[2J\033[H");
+    /* reset attrs, home, clear display + scrollback (helps IDEs/terminal tabs) */
+    printf("\033[0m\033[2J\033[H\033[3J");
+}
+
+void screen_clear_line(int y) {
+    screen_goto(0, y);
+    printf("\033[2K");
 }
 
 void screen_goto(int x, int y) {

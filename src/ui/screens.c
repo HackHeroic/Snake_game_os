@@ -1,9 +1,12 @@
 #include "screens.h"
+#include "renderer.h"
 #include "../lib/screen.h"
 #include "../lib/keyboard.h"
 #include "../lib/string.h"
 #include "../lib/math.h"
 #include "../game/stats.h"
+#include "../game/board.h"
+#include "../game/obstacles.h"
 #include <unistd.h>
 #include <stddef.h>
 
@@ -26,15 +29,10 @@ static int logo_color(int line) {
     return colors[line];
 }
 
-int show_title_screen(int *seed) {
-    int key;
+/* Draw the logo + game mode chooser. */
+static void draw_title_mode_page(void) {
     int i;
-    int entropy = 0;
-    int tick = 0;
 
-    screen_clear();
-
-    /* draw logo with gradient */
     for (i = 0; snake_logo[i] != NULL; i++) {
         screen_set_color(logo_color(i));
         screen_put_str(5, 3 + i, snake_logo[i]);
@@ -46,23 +44,9 @@ int show_title_screen(int *seed) {
     screen_put_str(5, 12, "[1] Classic  (walls kill)");
     screen_put_str(5, 13, "[2] Wrap-Around  (walls wrap)");
     screen_reset_color();
-
-    screen_flush();
-
-    /* wait for valid input, accumulate entropy for PRNG seed */
-    while (1) {
-        key = read_key();
-        tick++;
-        entropy += tick;
-        if (key == '1') { *seed = entropy; return 0; }
-        if (key == '2') { *seed = entropy; return 1; }
-        usleep(10000);  /* 10ms poll interval */
-    }
 }
 
-int show_theme_screen(void) {
-    int key;
-
+static void draw_theme_choices(void) {
     screen_put_str(5, 16, "Select Theme:");
     screen_set_color(46);
     screen_put_str(5, 18, "[1] Classic    (green)");
@@ -73,10 +57,71 @@ int show_theme_screen(void) {
     screen_set_color(196);
     screen_put_str(5, 21, "[4] Rainbow    (multicolor)");
     screen_reset_color();
+}
 
+/* Sync b to the terminal, or show "too small" until fixed or 'q' (return 1). */
+static int ensure_board_fits(Board *b, int *board_w, int *board_h) {
+    int key;
+
+    for (;;) {
+        if (board_sync_to_terminal(b, board_w, board_h)) {
+            return 0;
+        }
+        screen_clear();
+        screen_put_str(0, 0,
+            "Window too small (min 22x14). Enlarge, or Q to quit.            ");
+        screen_flush();
+        key = read_key();
+        if (key == 'q' || key == 'Q') {
+            return 1;
+        }
+        usleep(40000);
+    }
+}
+
+int show_title_screen(int *seed) {
+    int key;
+    int entropy = 0;
+    int tick = 0;
+
+    screen_clear();
+    draw_title_mode_page();
     screen_flush();
 
     while (1) {
+        if (keyboard_consume_resize()) {
+            screen_clear();
+            draw_title_mode_page();
+            screen_flush();
+        }
+        key = read_key();
+        tick++;
+        entropy += tick;
+        if (key == '1') {
+            *seed = entropy;
+            return 0;
+        }
+        if (key == '2') {
+            *seed = entropy;
+            return 1;
+        }
+        usleep(10000);
+    }
+}
+
+int show_theme_screen(void) {
+    int key;
+
+    draw_theme_choices();
+    screen_flush();
+
+    while (1) {
+        if (keyboard_consume_resize()) {
+            screen_clear();
+            draw_title_mode_page();
+            draw_theme_choices();
+            screen_flush();
+        }
         key = read_key();
         if (key == '1') return 0;
         if (key == '2') return 1;
@@ -90,24 +135,35 @@ void show_pause_overlay(Board *b) {
     int cx = OFFSET_X + my_divide(b->width, 2) - 3;
     int cy = OFFSET_Y + my_divide(b->height, 2);
 
-    screen_set_color(226);  /* yellow */
+    screen_set_color(226);
     screen_put_str(cx, cy, "PAUSED");
     screen_put_str(cx - 4, cy + 1, "Press P to resume");
     screen_reset_color();
     screen_flush();
 }
 
-void show_game_over(Snake *s, Board *b, Score *sc) {
-    SnakeSegment *seg;
+int show_game_over(const Theme *t, Snake *s, Board *b, Foods *foods, Obstacles *o, Score *sc) {
     int flash;
-    int i;
+    SnakeSegment *seg;
+    int bw, bh;
 
-    (void)sc;
-    (void)b;
+    if (ensure_board_fits(b, &bw, &bh)) {
+        return 1;
+    }
+    snake_fit_board(s, b->width, b->height);
+    obstacles_cull_outside(o, b->width, b->height);
 
-    /* flash snake red 3 times */
+    render_full_frame(t, b, s, NULL, foods, o, sc, NULL, 0, 0, 0);
+
     for (flash = 0; flash < 3; flash++) {
-        /* red */
+        if (keyboard_consume_resize()) {
+            if (ensure_board_fits(b, &bw, &bh)) {
+                return 1;
+            }
+            snake_fit_board(s, b->width, b->height);
+            obstacles_cull_outside(o, b->width, b->height);
+            render_full_frame(t, b, s, NULL, foods, o, sc, NULL, 0, 0, 0);
+        }
         screen_set_color(196);
         seg = s->head;
         while (seg) {
@@ -119,7 +175,14 @@ void show_game_over(Snake *s, Board *b, Score *sc) {
         screen_flush();
         usleep(150000);
 
-        /* dim */
+        if (keyboard_consume_resize()) {
+            if (ensure_board_fits(b, &bw, &bh)) {
+                return 1;
+            }
+            snake_fit_board(s, b->width, b->height);
+            obstacles_cull_outside(o, b->width, b->height);
+            render_full_frame(t, b, s, NULL, foods, o, sc, NULL, 0, 0, 0);
+        }
         screen_set_color(240);
         seg = s->head;
         while (seg) {
@@ -132,27 +195,21 @@ void show_game_over(Snake *s, Board *b, Score *sc) {
         usleep(150000);
     }
 
-    /* sequential disappearance from tail to head */
-    for (i = s->length - 1; i >= 0; i--) {
-        int j = 0;
-        seg = s->head;
-        while (seg && j < i) { seg = seg->next; j++; }
-        if (seg) {
-            screen_put_char(OFFSET_X + seg->x, OFFSET_Y + seg->y, ' ');
-            screen_flush();
-            usleep(50000);
-        }
+    if (ensure_board_fits(b, &bw, &bh)) {
+        return 1;
     }
+    snake_fit_board(s, b->width, b->height);
+    obstacles_cull_outside(o, b->width, b->height);
+    /* Remove snake from view for the static prompt. */
+    render_full_frame(t, b, NULL, NULL, foods, o, sc, NULL, 0, 0, 0);
+    return 0;
 }
 
-int show_game_over_prompt(Board *b, Score *s, Stats *st) {
-    int cx = OFFSET_X + my_divide(b->width, 2) - 4;
-    int cy = OFFSET_Y + my_divide(b->height, 2);
+static void game_over_text(Score *s, Stats *st, int cx, int cy) {
     char score_str[16];
     char high_str[16];
     char line[64];
     char num_str[16];
-    int key;
 
     screen_set_color(196);
     screen_put_str(cx, cy - 1, "GAME OVER");
@@ -169,7 +226,6 @@ int show_game_over_prompt(Board *b, Score *s, Stats *st) {
 
     screen_put_str(cx - 4, cy + 3, "R: Restart  |  Q: Quit");
 
-    /* lifetime stats */
     screen_set_color(240);
     screen_put_str(cx - 5, cy + 5, "--- Lifetime Stats ---");
 
@@ -189,14 +245,31 @@ int show_game_over_prompt(Board *b, Score *s, Stats *st) {
     my_strcat(line, num_str);
     screen_put_str(cx - 5, cy + 7, line);
     screen_reset_color();
+}
 
-    screen_flush();
+int show_game_over_prompt(const Theme *t, Board *b, Score *s, Stats *st, Foods *foods, Obstacles *o) {
+    int cx, cy, key, bw, bh;
 
-    while (1) {
-        key = read_key();
-        if (key == 'r' || key == 'R') return 'r';
-        if (key == 'q' || key == 'Q') return 'q';
-        usleep(16000);
+    for (;;) {
+        if (ensure_board_fits(b, &bw, &bh)) {
+            return 'q';
+        }
+        obstacles_cull_outside(o, b->width, b->height);
+        cx = OFFSET_X + my_divide(b->width, 2) - 4;
+        cy = OFFSET_Y + my_divide(b->height, 2);
+        render_full_frame(t, b, NULL, NULL, foods, o, s, NULL, 0, 0, 0);
+        game_over_text(s, st, cx, cy);
+        screen_flush();
+
+        for (;;) {
+            key = read_key();
+            if (key == 'r' || key == 'R') return 'r';
+            if (key == 'q' || key == 'Q') return 'q';
+            if (keyboard_consume_resize()) {
+                break;
+            }
+            usleep(16000);
+        }
     }
 }
 
@@ -210,9 +283,7 @@ void show_victory(Score *s, Board *b) {
     screen_reset_color();
 
     int_to_str(s->score, score_str);
-
     screen_put_str(cx - 2, cy + 2, "Final Score: ");
-    /* position score string right after "Final Score: " (13 chars) */
     screen_put_str(cx + 11, cy + 2, score_str);
     screen_flush();
 }

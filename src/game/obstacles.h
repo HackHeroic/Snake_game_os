@@ -17,7 +17,8 @@ typedef struct Obstacles {
 } Obstacles;
 
 void obstacles_init(Obstacles *obs);
-void obstacles_spawn(Obstacles *obs, Snake *s, Food *f, int board_w, int board_h, int *seed);
+void obstacles_spawn(Obstacles *obs, Snake *s, Foods *foods, int board_w, int board_h, int *seed);
+void obstacles_cull_outside(Obstacles *obs, int board_w, int board_h);
 int obstacles_check_collision(Obstacles *obs, int x, int y);
 
 #endif

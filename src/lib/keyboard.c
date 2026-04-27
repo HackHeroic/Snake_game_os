@@ -9,6 +9,14 @@
 static struct termios original_termios;
 static int raw_mode_enabled = 0;
 
+/* Set by SIGWINCH; read with keyboard_consume_resize in the game loop. */
+static volatile sig_atomic_t terminal_resized = 0;
+
+static void sigwinch_handler(int sig) {
+    (void)sig;
+    terminal_resized = 1;
+}
+
 static void sigint_handler(int sig) {
     (void)sig;
     keyboard_restore();
@@ -32,6 +40,7 @@ void keyboard_init(void) {
     raw_mode_enabled = 1;
 
     signal(SIGINT, sigint_handler);
+    signal(SIGWINCH, sigwinch_handler);
 }
 
 void keyboard_restore(void) {
@@ -70,4 +79,12 @@ int read_key(void) {
     }
 
     return (int)c;
+}
+
+int keyboard_consume_resize(void) {
+    if (terminal_resized) {
+        terminal_resized = 0;
+        return 1;
+    }
+    return 0;
 }
