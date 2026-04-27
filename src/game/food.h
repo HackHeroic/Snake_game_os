@@ -35,9 +35,9 @@ void foods_remove_at(Foods *fs, int index);
 
 /* ghost may be NULL. Returns 0 on success, -1 if no valid cell. */
 int foods_try_add_one(Foods *fs, Snake *s, Snake *ghost, Obstacles *obs,
-                      int board_w, int board_h, int *seed);
+                      int board_w, int board_h, int inset, int *seed);
 
 void foods_fill_to_target(Foods *fs, Snake *s, Snake *ghost, Obstacles *obs,
-                          int board_w, int board_h, int *seed, int target);
+                          int board_w, int board_h, int inset, int *seed, int target);
 
 #endif

@@ -32,6 +32,9 @@ int snake_refit_to_board(Snake *s, int new_w, int new_h);
  */
 int snakes_refit_union(Snake *player, Snake *ghost, int new_w, int new_h);
 
+/* Refit into the inset-bounded play region [inset, w-inset-1] x [inset, h-inset-1]. */
+int snakes_refit_inset(Snake *player, Snake *ghost, int new_w, int new_h, int inset);
+
 int snake_occupies_cell(const Snake *s, int x, int y);
 int snake_snakes_overlap(const Snake *a, const Snake *b);
 

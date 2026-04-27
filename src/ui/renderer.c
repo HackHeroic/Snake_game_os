@@ -11,27 +11,50 @@
 
 void render_border(Board *b, const Theme *t) {
     int i;
+    int x0, y0, x1, y1;
+    int play_w, play_h;
 
     screen_set_color(t->border_color);
 
-    /* top border */
+    /* outer border at the terminal-sized area edges */
     screen_put_char(OFFSET_X - 1, OFFSET_Y - 1, '+');
     for (i = 0; i < b->width; i++) {
         screen_put_char(OFFSET_X + i, OFFSET_Y - 1, '-');
     }
     screen_put_char(OFFSET_X + b->width, OFFSET_Y - 1, '+');
 
-    /* bottom border */
     screen_put_char(OFFSET_X - 1, OFFSET_Y + b->height, '+');
     for (i = 0; i < b->width; i++) {
         screen_put_char(OFFSET_X + i, OFFSET_Y + b->height, '-');
     }
     screen_put_char(OFFSET_X + b->width, OFFSET_Y + b->height, '+');
 
-    /* side borders */
     for (i = 0; i < b->height; i++) {
         screen_put_char(OFFSET_X - 1, OFFSET_Y + i, '|');
         screen_put_char(OFFSET_X + b->width, OFFSET_Y + i, '|');
+    }
+
+    /* inner shrunken border, drawn one cell outside the playable area */
+    if (b->inset > 0) {
+        x0 = OFFSET_X + b->inset - 1;
+        y0 = OFFSET_Y + b->inset - 1;
+        x1 = OFFSET_X + b->width - b->inset;
+        y1 = OFFSET_Y + b->height - b->inset;
+        play_w = b->width - my_multiply(b->inset, 2);
+        play_h = b->height - my_multiply(b->inset, 2);
+
+        screen_put_char(x0, y0, '+');
+        screen_put_char(x1, y0, '+');
+        screen_put_char(x0, y1, '+');
+        screen_put_char(x1, y1, '+');
+        for (i = 0; i < play_w; i++) {
+            screen_put_char(x0 + 1 + i, y0, '-');
+            screen_put_char(x0 + 1 + i, y1, '-');
+        }
+        for (i = 0; i < play_h; i++) {
+            screen_put_char(x0, y0 + 1 + i, '|');
+            screen_put_char(x1, y0 + 1 + i, '|');
+        }
     }
 
     screen_reset_color();
@@ -157,4 +180,41 @@ void render_obstacles(Obstacles *obs, Board *b, const Theme *t) {
                        OFFSET_Y + obs->items[i].y, '#');
     }
     screen_reset_color();
+}
+
+void render_powerups(const Powerups *p, Board *b, const Theme *t) {
+    int i;
+    char ch;
+    int color;
+    (void)b;
+
+    if (!p) return;
+    for (i = 0; i < p->count; i++) {
+        if (p->zones[i].type == POW_BOOST) {
+            color = t->bonus_food_color;
+            ch = (p->zones[i].glow_phase % 2) ? '>' : '+';
+        } else {
+            color = t->slow_food_color;
+            ch = (p->zones[i].glow_phase % 2) ? '<' : '%';
+        }
+        screen_set_color(color);
+        screen_put_char(OFFSET_X + p->zones[i].x,
+                        OFFSET_Y + p->zones[i].y, ch);
+    }
+    screen_reset_color();
+}
+
+void render_powerup_clear(int x, int y) {
+    screen_put_char(OFFSET_X + x, OFFSET_Y + y, ' ');
+}
+
+void render_replay_ghost(int x, int y, const Theme *t) {
+    (void)t;
+    screen_set_color(244);
+    screen_put_char(OFFSET_X + x, OFFSET_Y + y, '.');
+    screen_reset_color();
+}
+
+void render_replay_ghost_clear(int x, int y) {
+    screen_put_char(OFFSET_X + x, OFFSET_Y + y, ' ');
 }

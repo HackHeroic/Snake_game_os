@@ -7,6 +7,7 @@
 #include "../game/score.h"
 #include "../ui/themes.h"
 #include "../game/obstacles.h"
+#include "../game/powerups.h"
 
 void render_border(Board *b, const Theme *t);
 void render_snake(Snake *s, const Theme *t);
@@ -16,5 +17,9 @@ void render_foods(const Foods *fs, Board *b, const Theme *t);
 void render_hud(Score *s, Board *b);
 void render_erase_tail(int x, int y, Board *b);
 void render_obstacles(Obstacles *obs, Board *b, const Theme *t);
+void render_powerups(const Powerups *p, Board *b, const Theme *t);
+void render_powerup_clear(int x, int y);
+void render_replay_ghost(int x, int y, const Theme *t);
+void render_replay_ghost_clear(int x, int y);
 
 #endif

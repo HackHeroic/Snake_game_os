@@ -2,19 +2,23 @@
 #include "../lib/math.h"
 #include <stddef.h>
 
-Snake *ghost_create(Snake *player, Foods *foods, Obstacles *obs, int bw, int bh, int *seed) {
+Snake *ghost_create(Snake *player, Foods *foods, Obstacles *obs, int bw, int bh,
+                    int inset, int *seed) {
     int attempts;
     int sx, sy;
     Snake *g;
     SnakeSegment *seg;
     int i;
     int ok;
+    int play_w, play_h;
 
-    if (bw < 4 || bh < 1) return NULL;
+    play_w = bw - my_multiply(inset, 2);
+    play_h = bh - my_multiply(inset, 2);
+    if (play_w < 4 || play_h < 1) return NULL;
 
     for (attempts = 0; attempts < 400; attempts++) {
-        sx = 2 + my_mod(my_abs(pseudo_random(seed)), bw - 2);
-        sy = my_mod(my_abs(pseudo_random(seed)), bh);
+        sx = inset + 2 + my_mod(my_abs(pseudo_random(seed)), play_w - 2);
+        sy = inset + my_mod(my_abs(pseudo_random(seed)), play_h);
 
         g = snake_create(sx, sy);
         if (!g) return NULL;

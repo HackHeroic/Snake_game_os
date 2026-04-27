@@ -65,7 +65,7 @@ static void assign_food_type(Food *f, int *seed) {
 }
 
 int foods_try_add_one(Foods *fs, Snake *s, Snake *ghost, Obstacles *obs,
-                      int board_w, int board_h, int *seed) {
+                      int board_w, int board_h, int inset, int *seed) {
     Food *slot;
     int x, y;
     int valid;
@@ -73,15 +73,20 @@ int foods_try_add_one(Foods *fs, Snake *s, Snake *ghost, Obstacles *obs,
     int area;
     int i;
     int retries;
+    int play_w, play_h;
 
     if (!fs || fs->count >= MAX_FOOD_PIECES) return -1;
 
-    area = my_multiply(board_w, board_h);
+    play_w = board_w - my_multiply(inset, 2);
+    play_h = board_h - my_multiply(inset, 2);
+    if (play_w < 1 || play_h < 1) return -1;
+
+    area = my_multiply(play_w, play_h);
     if (s->length >= area - 1) return -1;
 
     for (retries = 0; retries < 400; retries++) {
-        x = my_mod(my_abs(pseudo_random(seed)), board_w);
-        y = my_mod(my_abs(pseudo_random(seed)), board_h);
+        x = inset + my_mod(my_abs(pseudo_random(seed)), play_w);
+        y = inset + my_mod(my_abs(pseudo_random(seed)), play_h);
 
         valid = 1;
 
@@ -123,7 +128,7 @@ int foods_try_add_one(Foods *fs, Snake *s, Snake *ghost, Obstacles *obs,
 }
 
 void foods_fill_to_target(Foods *fs, Snake *s, Snake *ghost, Obstacles *obs,
-                          int board_w, int board_h, int *seed, int target) {
+                          int board_w, int board_h, int inset, int *seed, int target) {
     int guard;
 
     if (!fs) return;
@@ -131,7 +136,7 @@ void foods_fill_to_target(Foods *fs, Snake *s, Snake *ghost, Obstacles *obs,
 
     guard = 0;
     while (fs->count < target && guard < 500) {
-        if (foods_try_add_one(fs, s, ghost, obs, board_w, board_h, seed) != 0) break;
+        if (foods_try_add_one(fs, s, ghost, obs, board_w, board_h, inset, seed) != 0) break;
         guard++;
     }
 }
