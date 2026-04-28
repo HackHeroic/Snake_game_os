@@ -15,7 +15,7 @@ TEST_MATH = tests/test_math
 TEST_STRING = tests/test_string
 TEST_MEMORY = tests/test_memory
 
-.PHONY: all clean run test
+.PHONY: all clean run test screenshots screenshots-headless screenshots-phase2
 
 all: snake
 
@@ -44,6 +44,21 @@ test: $(TEST_MATH) $(TEST_STRING) $(TEST_MEMORY)
 
 run: snake
 	./snake
+
+# High-fidelity screenshots via real Terminal.app + macOS screencapture.
+# Needs Screen Recording permission for the parent terminal.
+screenshots: snake
+	./scripts/capture_native.sh
+
+# Headless fallback: tmux + aha + headless Chrome. No permissions needed.
+# Requires: brew install tmux aha (Chrome ships in /Applications)
+screenshots-headless: snake
+	./scripts/capture_screenshots.sh
+
+# Build the ravi/phase2 branch in an isolated worktree and capture phase-2
+# screenshots (multi-food, ghost snake, power-ups, etc.) into report/figures/.
+screenshots-phase2:
+	./scripts/capture_phase2.sh
 
 clean:
 	rm -f $(ALL_OBJ) snake $(TEST_MATH) $(TEST_STRING) $(TEST_MEMORY)

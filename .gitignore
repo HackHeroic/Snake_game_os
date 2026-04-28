@@ -5,3 +5,17 @@ docs/specs/
 snake
 data/highscore.dat
 data/stats.dat
+
+# macOS
+.DS_Store
+
+# screenshot pipeline cruft
+.snake_capture_wrapper.sh
+.phase2-worktree/
+
+# tectonic / latex build artefacts
+report/snake_os_report.pdf
+*.aux
+*.log
+*.out
+*.toc
